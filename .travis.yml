@@ -5,5 +5,5 @@ python:
 install:
   - pip install .[test]
 # command to run tests
-script: pytest
+script: pytest --cov=./dvb
 codecov: true
