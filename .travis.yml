@@ -6,5 +6,4 @@ install:
   - pip install .
 # command to run tests
 script: pytest
-after_success:
-  - bash <(curl -s https://codecov.io/bash)
+codecov: true
