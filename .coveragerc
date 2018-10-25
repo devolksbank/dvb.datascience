@@ -4,7 +4,6 @@ cover_pylib = True
 
 [report]
 show_missing = True
-fail_under = 60
 
 [html]
 directory = tmp/code_coverage_report/
