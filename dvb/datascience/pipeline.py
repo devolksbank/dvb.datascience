@@ -434,7 +434,7 @@ class Pipeline:
         if transform_nr is None:
             transform_nr = self.current_transform_nr
 
-        return self.output_store.load_pipe_output(name, self.current_transform_nr)
+        return self.output_store.load_pipe_output(name, transform_nr)
 
     @staticmethod
     def get_params(params: Dict, key: str, metadata: Dict = None) -> Dict:
@@ -463,6 +463,7 @@ class Pipeline:
         fit_params: Optional[Params] = None,
         name: str = "fit",
         close_plt: bool = False,
+        draw_design: bool = True,
     ) -> None:
         """
         Train all pipes in the pipeline and run the transform for the first time
@@ -476,6 +477,7 @@ class Pipeline:
             fit=True,
             name=name,
             close_plt=close_plt,
+            draw_design=draw_design,
         )
 
     def _is_pipe_input_for_another_pipe(self, pipe: PipeBase):
@@ -511,6 +513,7 @@ class Pipeline:
         fit: bool = False,
         name: Optional[str] = None,
         close_plt: bool = False,
+        draw_design: bool = True,
     ):
         """
         When transform_params or fit_params contain a key 'default', that params will
@@ -518,7 +521,8 @@ class Pipeline:
         transform_params or fit_params. The default can be useful for params which are
         needed in a lot of pipes.
         """
-        self.draw_design()
+        if draw_design:
+            self.draw_design()
 
         self.current_transform_nr += 1
 

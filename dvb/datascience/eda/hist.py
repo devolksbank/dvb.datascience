@@ -13,6 +13,8 @@ class Hist(PipeBase):
         show_count_labels (Boolean): determines of the number is displayed above every bin (default = True)
         title (str): what title to display above every histogram (default = "Histogram")
         groupBy (str): this string will enable multiple bars in every bin, based on the groupBy column (default = None)
+        hit_ratio(bool): show the hit ratio per class based on 1 value of the column `label_column`
+        label_column(str): the column to compute the hit_ratio
 
     Returns:
     Plots of all the histograms.
@@ -22,7 +24,12 @@ class Hist(PipeBase):
     output_keys = ("figs",)
 
     def __init__(
-        self, show_count_labels=True, title="Histogram", groupBy: str = None
+        self,
+        show_count_labels=True,
+        title="Histogram",
+        groupBy: str = None,
+        hit_ratio: bool = False,
+        label_column: str = None,
     ) -> None:
         """
         groupBy: the name of the column to use to make different groups
@@ -30,6 +37,8 @@ class Hist(PipeBase):
         self.show_count_labels = show_count_labels
         self.title = title
         self.group_by = groupBy
+        self.hit_ratio = hit_ratio
+        self.label_column = label_column
 
         super().__init__()
 
@@ -45,6 +54,9 @@ class Hist(PipeBase):
             unique_group_by_values = df[self.group_by].unique()
 
         for feature in df.columns:
+            if feature == self.label_column:
+                continue
+
             if self.group_by is None or feature == self.group_by:
                 data = [df[feature]]
                 label = [feature]

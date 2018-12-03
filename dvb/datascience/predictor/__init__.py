@@ -10,7 +10,7 @@ import ipywidgets
 from typing import Tuple
 
 from ..classification_pipe_base import ClassificationPipeBase, Data, Params
-
+from ..regression_pipe_base import RegressionPipeBase
 
 class SklearnClassifier(ClassificationPipeBase):
     """
@@ -30,14 +30,14 @@ class SklearnClassifier(ClassificationPipeBase):
         self.clf = clf(**kwargs)
 
     def fit(self, data: Data, params: Params):
-        self._set_classification_labels(data["df"], data["df_metadata"])
+        self._set_predict_labels(data["df"], data["df_metadata"])
         X = data["df"][self.X_labels]
         y_true = data["df"][self.y_true_label]
 
         self.clf.fit(X, y_true)
 
     def transform(self, data: Data, params: Params) -> Data:
-        self._set_classification_data(data["df"], data["df_metadata"])
+        self._set_predict_data(data["df"], data["df_metadata"])
 
         self.y_pred_proba = pd.DataFrame(
             self.clf.predict_proba(self.X.values),
@@ -212,6 +212,47 @@ class SklearnGridSearch(SklearnClassifier):
         display(self.clf)
 
 
+class SklearnRegression(RegressionPipeBase):
+    """
+    Wrapper for inclusion of sklearn regression in the pipeline.
+    """
+
+    input_keys = ("df", "df_metadata")  # type: Tuple[str, ...]
+    output_keys = ("predict", "predict_metadata")
+
+    threshold = None
+
+    fit_attributes = [("clf", "pickle", "pickle"), ("threshold", None, None)]
+
+    def __init__(self, clf, **kwargs):
+        super().__init__()
+
+        self.clf = clf(**kwargs)
+
+    def fit(self, data: Data, params: Params):
+        self._set_predict_labels(data["df"], data["df_metadata"])
+        X = data["df"][self.X_labels]
+        y_true = data["df"][self.y_true_label]
+
+        self.clf.fit(X, y_true)
+
+    def transform(self, data: Data, params: Params) -> Data:
+        self._set_predict_data(data["df"], data["df_metadata"])
+
+        self.y_pred = pd.DataFrame(
+            self.clf.predict(self.X.values),
+            columns=("y_pred", ),
+            index=self.X.index,
+        )
+
+        if self.y_true is not None:
+            self.y_pred[self.y_true_label] = self.y_true
+
+        predict_metadata = data["df_metadata"].copy()
+
+        return {"predict": self.y_pred, "predict_metadata": predict_metadata}
+
+
 import tpot
 
 
@@ -227,3 +268,18 @@ class TPOTClassifier(SklearnClassifier):
         self.clf = self.clf.fitted_pipeline_
         display("<i>Best algoritm</i>")
         display(self.clf)
+
+
+class TPOTRegression(SklearnRegression):
+    def __init__(self, **kwargs):
+        self.clf = tpot.TPOTRegressor(**kwargs)
+
+    def fit(self, data: Data, params: Params):
+        super().fit(data, params)
+
+        # select the best estimator and store the gridsearch results for optional later inspection
+        self.cv_clf = self.clf
+        self.clf = self.clf.fitted_pipeline_
+        display("<i>Best algoritm</i>")
+        display(self.clf)
+

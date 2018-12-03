@@ -26,7 +26,7 @@ class LogitSummary(ClassificationPipeBase):
         self.kwargs = kwargs
 
     def transform(self, data: Data, params: Params) -> Data:
-        self._set_classification_labels(data["df"], data["df_metadata"])
+        self._set_predict_labels(data["df"], data["df_metadata"])
         df = data["df"].copy()
         if self.y_true_label not in df:
             return {"summary": None}
