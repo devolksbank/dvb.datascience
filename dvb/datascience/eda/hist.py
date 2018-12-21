@@ -1,7 +1,31 @@
 import matplotlib.pyplot as plt
 from IPython.core.display import HTML, display
+from dask.dataframe.core import DataFrame as DaskDataFrame
+from dask.dataframe.core import Series as DaskSeries
 
 from ..pipe_base import Data, Params, PipeBase
+
+
+class CountUniqueValues(PipeBase):
+    input_keys = ("df",)
+    output_keys = ("df",)
+
+    def __init__(
+            self, groupBy: str = None
+    ) -> None:
+        self.groupBy = groupBy
+
+    def transform_dask(self, data: Data, params: Params):
+        r = {}
+        df = data['df']
+
+        for column in df.columns:
+            if self.groupBy:
+                r[column] = df.groupby([self.groupBy, column]).count().compute()
+            else:
+                r[column] = df.groupby([column]).count().compute()
+
+        return {'df': r}
 
 
 class Hist(PipeBase):
@@ -13,8 +37,6 @@ class Hist(PipeBase):
         show_count_labels (Boolean): determines of the number is displayed above every bin (default = True)
         title (str): what title to display above every histogram (default = "Histogram")
         groupBy (str): this string will enable multiple bars in every bin, based on the groupBy column (default = None)
-        hit_ratio(bool): show the hit ratio per class based on 1 value of the column `label_column`
-        label_column(str): the column to compute the hit_ratio
 
     Returns:
     Plots of all the histograms.
@@ -24,12 +46,7 @@ class Hist(PipeBase):
     output_keys = ("figs",)
 
     def __init__(
-        self,
-        show_count_labels=True,
-        title="Histogram",
-        groupBy: str = None,
-        hit_ratio: bool = False,
-        label_column: str = None,
+            self, show_count_labels=True, title="Histogram", groupBy: str = None
     ) -> None:
         """
         groupBy: the name of the column to use to make different groups
@@ -37,10 +54,11 @@ class Hist(PipeBase):
         self.show_count_labels = show_count_labels
         self.title = title
         self.group_by = groupBy
-        self.hit_ratio = hit_ratio
-        self.label_column = label_column
 
         super().__init__()
+
+    # def _make_bins(self, s):
+    # s: series
 
     def transform(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
@@ -52,22 +70,22 @@ class Hist(PipeBase):
         unique_group_by_values = None
         if self.group_by:
             unique_group_by_values = df[self.group_by].unique()
+            if type(unique_group_by_values) is DaskSeries:
+                unique_group_by_values = unique_group_by_values.compute()
+            unique_group_by_values = [i for i in unique_group_by_values]
 
         for feature in df.columns:
-            if feature == self.label_column:
-                continue
-
             if self.group_by is None or feature == self.group_by:
                 data = [df[feature]]
                 label = [feature]
             else:
-                data = tuple(
-                    [
-                        df[df[self.group_by] == l][feature]
-                        for l in unique_group_by_values
-                    ]
-                )
+                data = []
+                for l in unique_group_by_values:
+                    data.append(df[df[self.group_by] == l][feature])
                 label = list(unique_group_by_values)
+
+            if type(data[0]) in (DaskDataFrame, DaskSeries):
+                data = [d.compute() for d in data]
 
             fig = self.get_fig((1, feature, params["metadata"]["nr"]))
             for idx, d in enumerate(data):

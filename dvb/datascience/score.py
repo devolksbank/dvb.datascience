@@ -11,21 +11,31 @@ from IPython.core.display import HTML, display
 from sklearn.preprocessing import label_binarize
 
 from .classification_pipe_base import ClassificationPipeBase, Data, Params
-from .regression_pipe_base import RegressionPipeBase
 
 logger = logging.getLogger(__name__)
 
 
-class PredictionScoreMixin:
+class ClassificationScore(ClassificationPipeBase):
     """
-    A base class for metrics
+    Some scores for classification problems
     """
 
     input_keys = ("predict", "predict_metadata")
     output_keys = ("scores",)
 
     # methods which can be used ONLY when y_true is present
-    possible_score_methods = []
+    possible_score_methods = [
+        "auc",
+        "plot_auc",
+        "accuracy",
+        "mcc",
+        "confusion_matrix",
+        "plot_confusion_matrix",
+        "precision_recall_curve",
+        "log_loss",
+        "classification_report",
+        "plot_model_performance",
+    ]
 
     # methods which can be used when y_true is not present
     possible_predict_methods = ["plot_model_performance"]
@@ -39,10 +49,10 @@ class PredictionScoreMixin:
         super().__init__()
 
     def fit(self, data: Data, params: Params):
-        self._set_predict_labels(data["predict"], data["predict_metadata"])
+        self._set_classification_labels(data["predict"], data["predict_metadata"])
 
     def transform(self, data: Data, params: Params) -> Data:
-        self._set_predict_data(data["predict"], data["predict_metadata"])
+        self._set_classification_data(data["predict"], data["predict_metadata"])
 
         # assert self.y_true.shape[0] == self.y_pred.shape[0]
         # assert self.y_true.shape[0] == self.y_pred_proba.shape[0]
@@ -73,31 +83,6 @@ class PredictionScoreMixin:
 
     def _add_key_value(self, key, value):
         self.transform_data[self.params["metadata"]["name"]][key] = value
-
-
-class ClassificationScore(PredictionScoreMixin, ClassificationPipeBase):
-    """
-    Some scores for classification problems
-    """
-
-    # methods which can be used ONLY when y_true is present
-    possible_score_methods = [
-        "auc",
-        "plot_auc",
-        "accuracy",
-        "mcc",
-        "confusion_matrix",
-        "plot_confusion_matrix",
-        "precision_recall_curve",
-        "log_loss",
-        "classification_report",
-        "plot_model_performance",
-    ]
-
-    # methods which can be used when y_true is not present
-    possible_predict_methods = ["plot_model_performance"]
-
-    params = None  # type: Params
 
     def auc(self) -> Optional[float]:
         if self.n_classes != 2:
@@ -344,71 +329,3 @@ class ClassificationScore(PredictionScoreMixin, ClassificationPipeBase):
 
         display(HTML("<h2>Model Performance</h2>"))
         display(fig)
-
-class RegressionScore(PredictionScoreMixin, RegressionPipeBase):
-    """
-    Some scores for classification problems
-    """
-
-    # methods which can be used ONLY when y_true is present
-    possible_score_methods = [
-        "mean_absolute_error",
-        "mean_squared_error",
-        "mean_squared_log_error",
-        "median_absolute_error",
-        "r2_score",
-        "explained_variance_score",
-    ]
-
-    # methods which can be used when y_true is not present
-    possible_predict_methods = ["plot_model_performance"]
-
-    params = None  # type: Params
-
-    def mean_absolute_error(self) -> Optional[float]:
-        r = sklearn.metrics.mean_absolute_error(self.y_true, self.y_pred)
-
-        self._add_key_value("mean_absolute_error", r)
-        self._show_html_table("mean_absolute_error")
-
-        return r
-
-    def mean_squared_error(self) -> Optional[float]:
-        r = sklearn.metrics.mean_squared_error(self.y_true, self.y_pred)
-
-        self._add_key_value("mean_squared_error", r)
-        self._show_html_table("mean_squared_error")
-
-        return r
-
-    def mean_squared_log_error(self) -> Optional[float]:
-        r = sklearn.metrics.mean_squared_log_error(self.y_true, self.y_pred)
-
-        self._add_key_value("mean_squared_log_error", r)
-        self._show_html_table("mean_squared_log_error")
-
-        return r
-
-    def median_absolute_error(self) -> Optional[float]:
-        r = sklearn.metrics.median_absolute_error(self.y_true, self.y_pred)
-
-        self._add_key_value("median_absolute_error", r)
-        self._show_html_table("median_absolute_error")
-
-        return r
-
-    def r2_score(self) -> Optional[float]:
-        r = sklearn.metrics.r2_score(self.y_true, self.y_pred)
-
-        self._add_key_value("r2_score", r)
-        self._show_html_table("r2_score")
-
-        return r
-
-    def explained_variance_score(self) -> Optional[float]:
-        r = sklearn.metrics.explained_variance_score(self.y_true, self.y_pred)
-
-        self._add_key_value("explained_variance_score", r)
-        self._show_html_table("explained_variance_score")
-
-        return r

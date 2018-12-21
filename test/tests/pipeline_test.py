@@ -139,12 +139,12 @@ class TestPipes(unittest.TestCase):
                 connectorList = []
 
                 for idx, feature in enumerate(features):
-                    self.pipeline.addPipe(
+                    self.sub_pipeline.addPipe(
                         "filter_" + featuresSimplifiedNames[feature],
                         ds.transform.FilterFeatures([feature]),
                         [("pass_data", "df", "df")],
                     )
-                    self.pipeline.addPipe(
+                    self.sub_pipeline.addPipe(
                         "outlier_" + featuresSimplifiedNames[feature],
                         ds.transform.ReplaceOutliersFeature(),
                         [("filter_" + featuresSimplifiedNames[feature], "df", "df")],
@@ -157,14 +157,14 @@ class TestPipes(unittest.TestCase):
                         )
                     )
                 print(connectorList)
-                self.pipeline.addPipe("union", ds.transform.Union(4), connectorList)
+                self.sub_pipeline.addPipe("union", ds.transform.Union(4), connectorList)
 
         p.addPipe("sub", TestSubPipline(), [("data", "df", "df")])
 
         p.fit_transform()
         self.assertEqual(
             len(
-                p.get_pipe("sub").pipeline.get_pipe_output(
+                p.get_pipe("sub").sub_pipeline.get_pipe_output(
                     "filter_" + featuresSimplifiedNames[features[0]]
                 )["df"]
             ),
@@ -175,7 +175,7 @@ class TestPipes(unittest.TestCase):
         p.transform()
         self.assertEqual(
             len(
-                p.get_pipe("sub").pipeline.get_pipe_output(
+                p.get_pipe("sub").sub_pipeline.get_pipe_output(
                     "filter_" + featuresSimplifiedNames[features[0]]
                 )["df"]
             ),

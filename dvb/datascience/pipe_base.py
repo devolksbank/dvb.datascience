@@ -4,6 +4,7 @@ import logging
 import pickle
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple, Sequence, Optional, Union, Callable
+import dask.dataframe as dd
 
 import matplotlib.pyplot as plt
 
@@ -23,6 +24,8 @@ class PipeBase(metaclass=abc.ABCMeta):
     output_keys = ("df",)  # type: Tuple[str, ...]
 
     name = None  # type: str
+
+    pipeline = None # type "dvb.datascience.pipeline.Pipeline", from which this pipe is part
 
     fit_attributes = (
         tuple()
@@ -54,14 +57,61 @@ class PipeBase(metaclass=abc.ABCMeta):
         self.fit(data, fit_params)
         return self.transform(data, transform_params)
 
+    def fit_dask(self, data: Data, params: Params):
+        # Default/fallback: use pandas method
+        self.fit_pandas(data, params)
+
+    def fit_pandas(self, data: Data, params: Params):
+        pass
+
+    def fit_pyspark(self, data: Data, params: Params):
+        pass
+
     def fit(self, data: Data, params: Params):
         """
         Train on a dataset `df` and store the learnings so `transform` can be called later on
         to transform based on the learnings.
         """
+        m = getattr(self, 'fit_'+ self.pipeline.dataframe_engine)
+        return m(data, params)
+
+
+    def transform_pandas(self, data: Data, params: Params) -> Data:
+        """
+        Perform an operations on `df` using the kwargs and the learnings from training.
+        Transform will return a tuple with the transformed dataset and some output.
+        The transformed dataset will be the input for the next plumber.
+        The output will be collected and shown to the user.
+        """
         pass
 
-    @abc.abstractmethod
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        """
+        Perform an operations on `df` using the kwargs and the learnings from training.
+        Transform will return a tuple with the transformed dataset and some output.
+        The transformed dataset will be the input for the next plumber.
+        The output will be collected and shown to the user.
+        """
+        # Default/fallback: convert pandas to dask
+        df = self.transform_pandas(data, params)['df']
+
+        if type(df) not in (dd.DataFrame, dd.Series):
+            df = dd.from_pandas(df)
+
+        return {
+                'df': df
+            }
+
+
+    def transform_pyspark(self, data: Data, params: Params) -> Data:
+        """
+        Perform an operations on `df` using the kwargs and the learnings from training.
+        Transform will return a tuple with the transformed dataset and some output.
+        The transformed dataset will be the input for the next plumber.
+        The output will be collected and shown to the user.
+        """
+        pass
+
     def transform(self, data: Data, params: Params) -> Data:
         """
         Perform an operations on `df` using the kwargs and the learnings from training.
@@ -69,6 +119,8 @@ class PipeBase(metaclass=abc.ABCMeta):
         The transformed dataset will be the input for the next plumber.
         The output will be collected and shown to the user.
         """
+        m = getattr(self, 'transform_'+ self.pipeline.dataframe_engine)
+        return m(data, params)
 
     figs = None  # type: Dict[Any, plt.Figure]
 

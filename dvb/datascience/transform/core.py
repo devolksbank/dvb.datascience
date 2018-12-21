@@ -34,7 +34,7 @@ class GetCoreFeatures(ClassificationPipeBase):
         self.core_features = []  # type: List[str]
 
     def fit(self, data: Data, params: Params):
-        self._set_predict_labels(data["df"], data["df_metadata"])
+        self._set_classification_labels(data["df"], data["df_metadata"])
         X = data["df"][self.X_labels]
         y = data["df"][self.y_true_label]
         self.core_features = self.get_core_features(X, y)

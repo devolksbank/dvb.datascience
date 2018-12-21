@@ -1,6 +1,5 @@
-import warnings
 import abc
-from typing import Any, List, Mapping, Optional, Tuple, Callable, Union
+from typing import Any, List, Mapping, Optional, Tuple, Callable
 
 from .pipe_base import Data, Params, PipeBase
 
@@ -31,7 +30,7 @@ class ClassificationPipeBase(PipeBase):
     def transform(self, data: Data, params: Params) -> Data:
         pass
 
-    def _set_predict_labels(self, df, df_metadata):
+    def _set_classification_labels(self, df, df_metadata):
         classes = df_metadata.get("classes")
 
         if classes is None:
@@ -59,7 +58,7 @@ class ClassificationPipeBase(PipeBase):
     y_pred_proba = None  # type: Mapping
     X = None  # type: Any
 
-    def _set_predict_data(self, df, df_metadata):
+    def _set_classification_data(self, df, df_metadata):
         self.X = df[self.X_labels]
         self.y_true = None
         if self.y_true_label in df.columns:

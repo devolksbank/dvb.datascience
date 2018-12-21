@@ -36,7 +36,7 @@ class ImputeWithDummy(PipeBase):
         self.strategy = strategy
         self.impValueTrain = impValueTrain
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         df = data["df"]
         if self.strategy == "mean":
             self._set_impute_value_train(df.mean())
@@ -47,7 +47,22 @@ class ImputeWithDummy(PipeBase):
         if self.strategy == "mode":
             self._set_impute_value_train(df.mode().iloc[0])
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def fit_dask(self, data: Data, params: Params):
+        df = data["df"]
+        if self.strategy == "mean":
+            self._set_impute_value_train(df.mean())
+
+        if self.strategy == "median":
+            print('Not Implemented in Dask. Use mean as fallback')
+            self._set_impute_value_train(df.mean())
+            # self._set_impute_value_train(df.median())
+
+        if self.strategy == "mode":
+            print('Not Implemented in Dask. Use mean as fallback')
+            self._set_impute_value_train(df.mean())
+            # self._set_impute_value_train(df.mode().iloc[0])
+
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
         return {"df": df.fillna(self.impValueTrain)}
 

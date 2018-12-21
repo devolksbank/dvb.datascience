@@ -3,7 +3,9 @@ python:
   - "3.6"
 # command to install dependencies
 install:
-  - pip install .[test]
+  - pip install -e .[test]
+  - pip install codecov
 # command to run tests
-script: pytest --cov=./dvb
-codecov: true
+script: pytest --cov=./dvb test
+after_success:
+  - codecov

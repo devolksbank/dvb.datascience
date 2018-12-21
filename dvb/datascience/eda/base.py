@@ -1,7 +1,5 @@
-from typing import Any
-import abc
-
 import matplotlib.pyplot as plt
+from typing import Any
 
 from ..pipe_base import Data, Params, PipeBase
 
@@ -15,10 +13,6 @@ class AnalyticsBase(PipeBase):
 
     def fit(self, data: Data, params: Params):
         self._reset_figs()
-
-    @abc.abstractmethod
-    def transform(self, data: Data, params: Params) -> Data:
-        pass
 
     def _reset_figs(self):
         self.figs = {}  # type: Dict[Any, Figure]

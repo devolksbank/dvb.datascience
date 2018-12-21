@@ -25,7 +25,7 @@ class AndrewsPlot(PipeBase):
 
         self.column = column
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
 
         display(

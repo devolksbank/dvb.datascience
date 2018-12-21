@@ -159,11 +159,17 @@ class Pipeline:
     def __init__(
         self,
         output_store: Optional[OutputStoreBase] = None,
+        dataframe_engine: str = 'pandas'
     ) -> None:
         logger.info("Initiate pipeline")
         if output_store is None:
             output_store = OutputStoreMemory()
         self.output_store = output_store
+
+        if dataframe_engine not in ('pandas', 'dask'): # TODO: add spark
+            raise ValueError('dataframe engine %s is not supported' % dataframe_engine)
+        self.dataframe_engine = dataframe_engine
+
         self.pipes = {}
         self.input_connectors = defaultdict(list)
         """A mapping between an input pipe name and related connection tuples (output_name, output_key, input_name, input_key)"""
@@ -240,6 +246,10 @@ class Pipeline:
         assert isinstance(pipe, PipeBase)
 
         pipe.name = name
+        pipe.pipeline = self
+        if hasattr(pipe, 'sub_pipeline'):
+            pipe.sub_pipeline.dataframe_engine = self.dataframe_engine
+            # TODO: also for sub_pipeline o sub_pipeline
         self.pipes[name] = pipe
 
         if inputs:
@@ -434,7 +444,7 @@ class Pipeline:
         if transform_nr is None:
             transform_nr = self.current_transform_nr
 
-        return self.output_store.load_pipe_output(name, transform_nr)
+        return self.output_store.load_pipe_output(name, self.current_transform_nr)
 
     @staticmethod
     def get_params(params: Dict, key: str, metadata: Dict = None) -> Dict:
@@ -463,7 +473,6 @@ class Pipeline:
         fit_params: Optional[Params] = None,
         name: str = "fit",
         close_plt: bool = False,
-        draw_design: bool = True,
     ) -> None:
         """
         Train all pipes in the pipeline and run the transform for the first time
@@ -477,7 +486,6 @@ class Pipeline:
             fit=True,
             name=name,
             close_plt=close_plt,
-            draw_design=draw_design,
         )
 
     def _is_pipe_input_for_another_pipe(self, pipe: PipeBase):
@@ -513,7 +521,6 @@ class Pipeline:
         fit: bool = False,
         name: Optional[str] = None,
         close_plt: bool = False,
-        draw_design: bool = True,
     ):
         """
         When transform_params or fit_params contain a key 'default', that params will
@@ -521,8 +528,7 @@ class Pipeline:
         transform_params or fit_params. The default can be useful for params which are
         needed in a lot of pipes.
         """
-        if draw_design:
-            self.draw_design()
+        self.draw_design()
 
         self.current_transform_nr += 1
 

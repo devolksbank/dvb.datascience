@@ -19,7 +19,7 @@ class BoxPlot(PipeBase):
     input_keys = ("df",)
     output_keys = ("figs",)
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
 
         display(HTML("<h2>Boxplots Transform %s</h2>" % params["metadata"]["name"]))
@@ -33,3 +33,4 @@ class BoxPlot(PipeBase):
             display(fig)
 
         return {"figs": self.figs}
+

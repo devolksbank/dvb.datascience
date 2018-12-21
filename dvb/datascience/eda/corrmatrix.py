@@ -20,7 +20,7 @@ class CorrMatrixPlot(PipeBase):
     input_keys = ("df",)
     output_keys = ("fig", "corr")
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
         labels = df.columns
 

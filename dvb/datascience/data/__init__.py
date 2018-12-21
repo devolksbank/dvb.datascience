@@ -5,6 +5,7 @@ import sklearn.utils
 
 from .arff import ARFFDataExportPipe
 from .arff import ARFFDataImportPipe
+from .csv import MetaData
 from .csv import CSVDataExportPipe
 from .csv import CSVDataImportPipe
 from .excel import ExcelDataImportPipe

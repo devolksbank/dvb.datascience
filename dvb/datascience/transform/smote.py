@@ -42,10 +42,10 @@ class SMOTESampler(ClassificationPipeBase):
             self.kwargs["random_state"] = 149
 
     def fit(self, data: Data, params: Params):
-        self._set_predict_labels(data["df"], data["df_metadata"])
+        self._set_classification_labels(data["df"], data["df_metadata"])
 
     def transform(self, data: Data, params: Params) -> Data:
-        self._set_predict_data(data["df"], data["df_metadata"])
+        self._set_classification_data(data["df"], data["df_metadata"])
 
         smote = SMOTE(**self.kwargs)
 
