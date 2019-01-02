@@ -33,7 +33,7 @@ class DimensionReductionPlots(AnalyticsBase):
         self.n_components = 2
         self.pca = None
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
         if self.y_label not in df.columns:
             display(
@@ -78,6 +78,9 @@ class DimensionReductionPlots(AnalyticsBase):
         self.scatterPlot(Xt, y, "t-SNE")
 
         return {"figs": self.figs}
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        raise NotImplementedError
 
     def scatterPlot(self, X, y, title):
         logger.info("Creating scatterplot: %s", title)

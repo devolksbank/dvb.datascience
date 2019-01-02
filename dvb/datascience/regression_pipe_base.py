@@ -12,13 +12,13 @@ class RegressionPipeBase(PipeBase):
 
     y_true_label = ""
     y_pred_label = ""
-    X_labels = None  # type: List[str]
+    X_labels: List[str] = None
 
-    fit_attributes = [
+    fit_attributes: List[Tuple[str, Optional[Union[str, Callable]], Optional[Union[str, Callable]]]] = [
         ("y_true_label", None, None),
         ("y_pred_label", None, None),
         ("X_labels", None, None),
-    ]  # type: List[Tuple[str, Optional[Union[str, Callable]], Optional[Union[str, Callable]]]]
+    ]
 
     @abc.abstractmethod
     def transform(self, data: Data, params: Params) -> Data:
@@ -32,9 +32,9 @@ class RegressionPipeBase(PipeBase):
         )  # the features, default: all labels except y
 
 
-    y_true = None  # type: Optional[List]
-    y_pred = None  # type: List
-    X = None  # type: Any
+    y_true: Optional[List] = None
+    y_pred: List = None
+    X : Any = None
 
     def _set_predict_data(self, df, df_metadata):
         self.X = df[self.X_labels]

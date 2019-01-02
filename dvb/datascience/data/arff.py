@@ -52,8 +52,8 @@ class ARFFDataExportPipe(PipeBase):
     fit_attributes = [("file_path", None, None), ("wekaname", None, None)]
 
     def fit(self, data: Data, params: Params):
-        self.file_path = params["file_path"]  # type: str
-        self.wekaname = params["wekaname"]  # type: str
+        self.file_path: str = params["file_path"]
+        self.wekaname: str = params["wekaname"]
 
     def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]

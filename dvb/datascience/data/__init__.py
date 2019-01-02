@@ -31,14 +31,14 @@ class DataPipe(PipeBase):
         self.input_keys = ()
         self.output_keys = (key,)
         self.data = data
-        self.fitted_data = None  # type: Optional[Data]
+        self.fitted_data: Optional[Data] = None
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         self.fitted_data = self.data
         if "data" in params:
             self.fitted_data = params["data"]
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         if "data" in params:
             data = params["data"]
         else:
@@ -52,7 +52,7 @@ class DataPipe(PipeBase):
         return {self.key: data}
 
 
-sampleDatasets = {
+sampleDatasets: Dict[str, Dict[str, Any]] = {
     "iris": {
         # Classes	3
         # Samples per class	50
@@ -113,7 +113,7 @@ sampleDatasets = {
         "classes": None,
         "y_true_label": "target",
     },
-}  # type: Dict[str, Dict[str, Any]]
+}
 
 
 class SampleData(PipeBase):
@@ -133,10 +133,10 @@ class SampleData(PipeBase):
         self.y_true_label = sampleDatasets[dataset_name]["y_true_label"]
         self.classes = sampleDatasets[dataset_name]["classes"]
 
-    def transform(self, data: Data, params: Params) -> Data:
-        d = getattr(
+    def transform_pandas(self, data: Data, params: Params) -> Data:
+        d: sklearn.utils.Bunch = getattr(
             sklearn.datasets, "load_" + self.dataset_name
-        )()  # type: sklearn.utils.Bunch
+        )()
         df = pd.DataFrame(
             d.data, columns=getattr(d, "feature_names", None)  # pylint: disable=e1101
         )

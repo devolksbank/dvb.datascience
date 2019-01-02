@@ -17,7 +17,7 @@ class LabelBinarizerPipe(PipeBase):
 
     fit_attributes = [("lb", "pickle", "pickle")]
 
-    lb = None  # type: Dict[str, LabelBinarizer]
+    lb: Dict[str, LabelBinarizer] = None
 
     def fit(self, data: Data, params: Params):
         self.lb = {}

@@ -15,6 +15,18 @@ class CountUniqueValues(PipeBase):
     ) -> None:
         self.groupBy = groupBy
 
+    def transform_pandas(self, data, params):
+        r = {}
+        df = data['df']
+
+        for column in df.columns:
+            if self.groupBy:
+                r[column] = df.groupby([self.groupBy, column]).count()
+            else:
+                r[column] = df.groupby([column]).count()
+
+        return {'df': r}
+
     def transform_dask(self, data: Data, params: Params):
         r = {}
         df = data['df']
@@ -57,10 +69,7 @@ class Hist(PipeBase):
 
         super().__init__()
 
-    # def _make_bins(self, s):
-    # s: series
-
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
 
         display(
@@ -108,3 +117,6 @@ class Hist(PipeBase):
             display(fig)
 
         return {"figs": self.figs}
+
+    def transform_dask(self, data, params):
+        raise NotImplementedError("Use CountUniqueValues")

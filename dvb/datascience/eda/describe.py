@@ -18,6 +18,9 @@ class Describe(AnalyticsBase):
     input_keys = ("df",)
     output_keys = ("output",)
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         display(data["df"].describe())
         return {"output": data["df"].describe()}
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        raise NotImplementedError("Dask does not provide a describe method")

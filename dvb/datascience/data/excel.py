@@ -1,5 +1,4 @@
 import pandas as pd
-import dask.dataframe as dd
 
 from ..pipe_base import PipeBase, Data, Params
 

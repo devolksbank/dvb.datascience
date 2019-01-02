@@ -22,7 +22,7 @@ class SKLearnWrapper(PipeBase):
     input_keys = ("df",)
     output_keys = ("df",)
 
-    s = None  # type: SKLearnBase
+    s: SKLearnBase = None
 
     fit_attributes = [("s", "pickle", "pickle")]
 

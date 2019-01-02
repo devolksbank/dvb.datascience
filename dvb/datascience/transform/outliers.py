@@ -34,7 +34,7 @@ class RemoveOutliers(PipeBase):
         self.skip_columns = skip_columns or []
         self.min_outliers = min_outliers
 
-        self.boundaries = {}  # type: Dict[str, Tuple[float, float]]
+        self.boundaries: Dict[str, Tuple[float, float]] = {}
 
     def fit(self, data: Data, params: Params):
         df = data["df"]
@@ -103,9 +103,9 @@ class ReplaceOutliersFeature(PipeBase):
         self.method = method
         self.nr_of_std = nr_of_std
 
-        self.features_limit = {}  # type: Dict[str,Tuple]
-        self.features_mean = {}  # type: Dict[str,float]
-        self.features_median = {}  # type: Dict[str,float]
+        self.features_limit: Dict[str,Tuple] = {}
+        self.features_mean: Dict[str,float] = {}
+        self.features_median: Dict[str,float] = {}
 
     def fit(self, data: Data, params: Params):
         df = data["df"]

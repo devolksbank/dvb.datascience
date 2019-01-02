@@ -1,4 +1,4 @@
-from typing import List, Optional, Mapping
+from typing import List, Optional, Mapping, Any
 import abc
 
 import pandas as pd
@@ -17,8 +17,8 @@ class SklearnClassifier(ClassificationPipeBase):
     Wrapper for inclusion of sklearn classifiers in the pipeline.
     """
 
-    input_keys = ("df", "df_metadata")  # type: Tuple[str, ...]
-    output_keys = ("predict", "predict_metadata")  # type: Tuple[str, ...]
+    input_keys = ("df", "df_metadata")
+    output_keys = ("predict", "predict_metadata")
 
     threshold = None
 
@@ -74,11 +74,11 @@ class ThresholdBase(abc.ABC):
     What does this do?
     """
 
-    y_true = None  # type: Optional[List]
-    y_pred_proba = None  # type: Mapping
-    y_pred_proba_labels = None  # type: List[str]
+    y_true: Optional[List] = None
+    y_pred_proba: Mapping = None
+    y_pred_proba_labels: List[str] = None
 
-    def set_y(self, y_true, y_pred_proba, y_pred_proba_labels, **kwargs):
+    def set_y(self, y_true, y_pred_proba, y_pred_proba_labels):
         self.y_true = y_true
         self.y_pred_proba = y_pred_proba
         self.y_pred_proba_labels = y_pred_proba_labels
@@ -218,6 +218,7 @@ import tpot
 class TPOTClassifier(SklearnClassifier):
     def __init__(self, **kwargs):
         self.clf = tpot.TPOTClassifier(**kwargs)
+        self.cv_clf = None
 
     def fit(self, data: Data, params: Params):
         super().fit(data, params)

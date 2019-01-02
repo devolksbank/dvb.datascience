@@ -21,7 +21,7 @@ class Union(PipeBase):
 
     """
 
-    input_keys = ()  # type: Tuple
+    input_keys: Tuple = ()
     output_keys = ("df",)
 
     def __init__(
@@ -42,7 +42,7 @@ class Union(PipeBase):
         dfs = []
 
         if self.axis == 1:
-            found_column_names = set()  # type: Set[str]
+            found_column_names: Set[str] = set()
             if self.remove_duplicated_columns:
 
                 for df in data.values():
@@ -73,7 +73,7 @@ class Union(PipeBase):
         dfs = []
 
         if self.axis == 1:
-            found_column_names = set()  # type: Set[str]
+            found_column_names: Set[str] = set()
             if self.remove_duplicated_columns:
 
                 for df in data.values():

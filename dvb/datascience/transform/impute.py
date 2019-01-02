@@ -19,7 +19,7 @@ class ImputeWithDummy(PipeBase):
 
     possible_strategies = ["mean", "median", "mode", "value"]
 
-    impValueTrain = None  # type: Optional[Any]
+    impValueTrain: Optional[Any] = None
 
     fit_attributes = [("impValueTrain", "pickle", "pickle")]
 

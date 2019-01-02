@@ -18,6 +18,7 @@ from .pipe_base import Data, Params, PipeBase
 
 logger = logging.getLogger(__name__)
 
+default_dataframe_engine = 'pandas'
 
 class Status(Enum):
     NOT_STARTED = 1
@@ -148,25 +149,27 @@ class Pipeline:
     must be an instance of OutputStoreBase. At default, an OutputStoreMemory will be used.
     """
 
-    pipes = None  # type: Dict
-    input_connectors = None  # type: Dict[Optional[str], List]
-    output_connectors = None  # type: Dict[Optional[str], List]
+    pipes: Dict = None
+    input_connectors: Dict[Optional[str], List] = None
+    output_connectors: Dict[Optional[str], List] = None
 
-    current_transform_nr = -1  # type: int
-    transform_status = None  # type: Dict[int, Status]
-    output_store = None  # type: OutputStoreBase
+    current_transform_nr: int = -1
+    transform_status: Dict[int, Status] = None
+    output_store: OutputStoreBase = None
 
     def __init__(
         self,
         output_store: Optional[OutputStoreBase] = None,
-        dataframe_engine: str = 'pandas'
+        dataframe_engine: str = None,
     ) -> None:
         logger.info("Initiate pipeline")
         if output_store is None:
             output_store = OutputStoreMemory()
         self.output_store = output_store
 
-        if dataframe_engine not in ('pandas', 'dask'): # TODO: add spark
+        if dataframe_engine is None:
+            dataframe_engine = default_dataframe_engine
+        if dataframe_engine not in ('pandas', 'dask'):
             raise ValueError('dataframe engine %s is not supported' % dataframe_engine)
         self.dataframe_engine = dataframe_engine
 
@@ -341,7 +344,7 @@ class Pipeline:
         )
 
         # Use the more informational name when available
-        label = output_key if output_key is not None else ""  # type: str
+        label: str = output_key if output_key is not None else ""
         if input_key != output_key and input_key is not None:
             label += "-->" + input_key
 

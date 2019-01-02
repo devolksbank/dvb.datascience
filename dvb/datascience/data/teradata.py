@@ -3,6 +3,7 @@ import logging
 import time
 
 import pandas as pd
+import dask.dataframe as dd
 
 from ..pipe_base import PipeBase, Data, Params
 
@@ -32,15 +33,16 @@ else:
         def convertValue(self, dbType, dataType, typeCode, value):
             if value is not None and dataType == "DECIMAL":
                 return decimal.Decimal(value.replace(",", "."))
-            elif value is not None and (
+
+            if value is not None and (
                 dataType == "BYTEINT"
                 or dataType == "BIGINT"
                 or dataType == "SMALLINT"
                 or dataType == "INTEGER"
             ):
                 return int(value)
-            else:
-                return super().convertValue(dbType, dataType, typeCode, value)
+
+            return super().convertValue(dbType, dataType, typeCode, value)
 
     class TeraDataImportPipe(PipeBase):
         """
@@ -59,13 +61,11 @@ else:
             if not use_teradata:
                 logger.error("Teradata module is not imported and could not be used")
 
-        def transform(self, data: Data, params: Params) -> Data:
+        def _transform(self, params: Params, read_sql_query) -> Data:
+            sql = params.get("sql", "")
             if params["file_path"]:
                 with open(params["file_path"], "r") as f:
                     sql = f.read()
-            else:
-                sql = params["sql"]
-            sort_alphabetically = params["sort_alphabetically"]
 
             start = time.time()
             udaExec = teradata.UdaExec(
@@ -77,14 +77,26 @@ else:
                 dataTypeConverter=customDataTypeConverter(),
             )
             conn = udaExec.connect(method="odbc", DSN="Teradata")
-            df = pd.read_sql_query(sql, conn)
+            df = read_sql_query(sql, conn)
             logger.info(
                 "teradata returned %s rows in % seconds",
                 str(len(df)),
                 str(round(time.time() - start)),
             )
             conn.close()
+            return {"df": df}
 
+        def transform_pandas(self, data: Data, params: Params) -> Data:
+            sort_alphabetically = params["sort_alphabetically"]
+            df = self._transform(params, pd.read_sql_query)["df"]
+            if sort_alphabetically:
+                df = df.sort_index(axis=1)
+
+            return {"df": df}
+
+        def transform_dask(self, data: Data, params: Params) -> Data:
+            sort_alphabetically = params["sort_alphabetically"]
+            df = self._transform(params, dd.read_sql_table)["df"]
             if sort_alphabetically:
                 df = df.sort_index(axis=1)
 

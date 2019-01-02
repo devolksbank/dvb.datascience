@@ -3,16 +3,17 @@ import codecs
 import logging
 import pickle
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple, Sequence, Optional, Union, Callable
+from typing import Any, Dict, List, Tuple, Sequence, Optional, Union, Callable, NewType
 import dask.dataframe as dd
+import pandas as pd
 
 import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
 
-Data = Dict[str, Any]
-Params = Dict[str, Any]
+Data = NewType('Data', Dict[str, Any])
+Params = NewType('Params', Dict[str, Any])
 
 
 class PipeBase(metaclass=abc.ABCMeta):
@@ -20,16 +21,16 @@ class PipeBase(metaclass=abc.ABCMeta):
     Common base class for all pipes
     """
 
-    input_keys = ("df",)  # type: Tuple[str, ...]
-    output_keys = ("df",)  # type: Tuple[str, ...]
+    input_keys: Tuple[str, ...] = ("df",)
+    output_keys: Tuple[str, ...] = ("df",)
 
-    name = None  # type: str
+    name: str = None
 
-    pipeline = None # type "dvb.datascience.pipeline.Pipeline", from which this pipe is part
+    pipeline = None # type: "dvb.datascience.pipeline.Pipeline"
 
-    fit_attributes = (
+    fit_attributes: Sequence[Tuple[str, Optional[Union[str, Callable]], Optional[Union[str, Callable]]]] = (
         tuple()
-    )  # type: Sequence[Tuple[str, Optional[Union[str, Callable]], Optional[Union[str, Callable]]]]
+    )
 
     def __repr__(self):
         return f"Pipe({self.name!r})"
@@ -93,14 +94,15 @@ class PipeBase(metaclass=abc.ABCMeta):
         The output will be collected and shown to the user.
         """
         # Default/fallback: convert pandas to dask
-        df = self.transform_pandas(data, params)['df']
+        d = {}
 
-        if type(df) not in (dd.DataFrame, dd.Series):
-            df = dd.from_pandas(df)
+        for key, df in self.transform_pandas(data, params).items():
+            if type(df) in (pd.DataFrame, pd.Series):
+                df = dd.from_pandas(df, chunksize=1).compute()  # TO CHECK: is it wise to use compute here?
 
-        return {
-                'df': df
-            }
+            d[key] = df
+
+        return d
 
 
     def transform_pyspark(self, data: Data, params: Params) -> Data:
@@ -122,7 +124,7 @@ class PipeBase(metaclass=abc.ABCMeta):
         m = getattr(self, 'transform_'+ self.pipeline.dataframe_engine)
         return m(data, params)
 
-    figs = None  # type: Dict[Any, plt.Figure]
+    figs: Dict[Any, plt.Figure] = None
 
     def get_fig(self, idx: Any):
         """

@@ -139,6 +139,12 @@ The unittests for the project can be run using [pytest](https://pytest.org/):
 pytest
 ```
 
+At default, the pandas implementation will be used for the test. You can use test the Dask implementation via:
+```bash
+pytest --dataframe-engine dask
+```
+
+
 ### Code coverage
 
 Pytest will also output the coverage tot the console.

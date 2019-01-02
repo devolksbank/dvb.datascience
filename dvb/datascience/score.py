@@ -40,7 +40,7 @@ class ClassificationScore(ClassificationPipeBase):
     # methods which can be used when y_true is not present
     possible_predict_methods = ["plot_model_performance"]
 
-    params = None  # type: Params
+    params: Params = None
 
     def __init__(self, score_methods: List[str] = None) -> None:
         """
@@ -53,9 +53,6 @@ class ClassificationScore(ClassificationPipeBase):
 
     def transform(self, data: Data, params: Params) -> Data:
         self._set_classification_data(data["predict"], data["predict_metadata"])
-
-        # assert self.y_true.shape[0] == self.y_pred.shape[0]
-        # assert self.y_true.shape[0] == self.y_pred_proba.shape[0]
 
         self.params = (
             params

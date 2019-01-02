@@ -43,6 +43,7 @@ setup(
         "blockdiag",
         "pyensae",
         "TPOT",
+        "dask[array, bag, dataframe, distributed, delayed]",
     ],  # Optional
     extras_require={  # Optional
         "dev": ["zest.releaser[recommended]"],

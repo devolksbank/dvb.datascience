@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from typing import Any
+from typing import Any, Dict
 
 from ..pipe_base import Data, Params, PipeBase
 
@@ -15,7 +15,7 @@ class AnalyticsBase(PipeBase):
         self._reset_figs()
 
     def _reset_figs(self):
-        self.figs = {}  # type: Dict[Any, Figure]
+        self.figs: Dict[Any, plt.Figure] = {}
         self.number_of_dfs = 0
 
     def set_fig(self, idx: Any):

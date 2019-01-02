@@ -11,7 +11,7 @@ class FeaturesBase(PipeBase, abc.ABC):
     input_keys = ("df",)
     output_keys = ("df",)
 
-    features = None  # type: Optional[List[str]]
+    features: Optional[List[str]] = None
 
     fit_attributes = [("features", None, None)]
 
@@ -23,7 +23,7 @@ class SpecifyFeaturesBase(FeaturesBase):
     with the feautures during transform.
     """
 
-    features_function = None  # type: Optional[Callable]
+    features_function: Optional[Callable] = None
 
     def __init__(
         self, features: List[str] = None, features_function: Callable = None
@@ -122,10 +122,7 @@ class FilterFeatures(SpecifyFeaturesBase):
     def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
 
-        if self.features is None:
-            features = []  # type: List[str]
-        else:
-            features = [i for i in self.features if i in df.columns]
+        features: List[str] = [] if self.features is None else  [i for i in self.features if i in df.columns]
 
         return {"df": df[features]}
 

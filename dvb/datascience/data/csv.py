@@ -123,6 +123,12 @@ class CSVDataExportPipe(PipeBase):
     """
     Exports a dataframe to CSV.
     Takes as input filepath (str), sep (str).
+
+    In the Dask variant, the fle_path may contain a `*` which will be replaced
+    by the filenumber (0, 1, 2, ...) or a name_function.
+
+    >>> CSVDataExportPipe('export-*.csv', name_function=lamda i:  str(date(2015, 1, 1) + i * timedelta(days=1)))
+
     Returns a CSV file at the specified location.
     """
 
@@ -136,9 +142,21 @@ class CSVDataExportPipe(PipeBase):
         self.sep = sep or ","
         self.kwargs = kwargs
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         data["df"].to_csv(
             params.get("file_path") or self.file_path,
+            sep=params.get("sep") or self.sep,
+            **self.kwargs
+        )
+        return {}
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        file_path = params.get("file_path") or self.file_path
+        if isinstance(file_path, str) and not '*' in file_path:
+            file_path = [file_path]
+
+        data["df"].to_csv(
+            file_path,
             sep=params.get("sep") or self.sep,
             **self.kwargs
         )

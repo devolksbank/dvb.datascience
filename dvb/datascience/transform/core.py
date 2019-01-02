@@ -31,7 +31,7 @@ class GetCoreFeatures(ClassificationPipeBase):
         self.model = model
         self.method = method
         self.n_features = n_features
-        self.core_features = []  # type: List[str]
+        self.core_features: List[str] = []
 
     def fit(self, data: Data, params: Params):
         self._set_classification_labels(data["df"], data["df_metadata"])
