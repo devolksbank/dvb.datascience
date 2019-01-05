@@ -1,15 +1,17 @@
-import unittest
+import pytest
 
 import pandas as pd
 
 import dvb.datascience as ds
+import dask.dataframe as dd
 
 
-class TestDump(unittest.TestCase):
-    def setUp(self):
-        self.pipeline = ds.Pipeline()
+@pytest.mark.usefixtures("dataframe_engine")
+class TestDump:
 
-        self.train_data = pd.DataFrame(
+    @property
+    def train_data(self):
+        train_data = pd.DataFrame(
             [
                 ["jan", 20, "M", 180],
                 ["marie", 21, "W", 164],
@@ -18,13 +20,23 @@ class TestDump(unittest.TestCase):
                 ["jan", 60, "U", 188],
             ],
             columns=["name", "age", "gender", "length"],
-        )
+        ).sort_index(axis=1)
 
-    def test_dump(self):
-        p = self.pipeline
+        if ds.pipeline.default_dataframe_engine == 'dask':
+            train_data = dd.from_pandas(train_data, chunksize=1).compute()
+
+        return train_data
+
+    @pytest.fixture()
+    def pipeline(self):
+        return ds.Pipeline()
+
+    @pytest.mark.skip_dataframe_engine("dask")
+    def test_dump(self, pipeline):
+        p = pipeline
         p.addPipe("read", ds.data.DataPipe(data=self.train_data))
         p.addPipe("dump", ds.eda.Dump(), [("read", "data", "df")])
         p.fit_transform()
         df_read = p.get_pipe_output("read")["data"]
         df_dump = p.get_pipe_output("dump")["output"]
-        self.assertTrue(pd.DataFrame.equals(df_dump, df_read))
+        assert pd.DataFrame.equals(df_dump, df_read)

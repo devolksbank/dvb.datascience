@@ -1,4 +1,4 @@
-import unittest
+import pytest
 
 import pandas as pd
 from sklearn.preprocessing import StandardScaler
@@ -7,19 +7,21 @@ import dvb.datascience as ds
 from dvb.datascience.data import csv
 
 
-class TestTransform(unittest.TestCase):
-    def setUp(self):
-        # initialize a pipe without the last step
-        self.train_csv = "test/data/train.csv"
-        self.test_csv = "test/data/test.csv"
+@pytest.mark.usefixtures("dataframe_engine")
+class TestTransform:
 
+    train_csv = "test/data/train.csv"
+    test_csv = "test/data/test.csv"
+
+    @pytest.fixture()
+    def pipeline(self):
         p = ds.Pipeline()
         p.addPipe("read", csv.CSVDataImportPipe())
         p.addPipe(
             "filter_numeric", ds.transform.FilterTypeFeatures(), [("read", "df", "df")]
         )
 
-        self.pipeline = p
+        return p
 
     def test_union(self):
         df1 = pd.DataFrame.from_dict(
@@ -52,17 +54,11 @@ class TestTransform(unittest.TestCase):
             [("df1", "df", "df1"), ("df2", "df", "df1")],
         )
         p.fit_transform()
-        self.assertEqual(
-            set(p.get_pipe_output("merge_1")["df"].columns),
-            set(["col_1", "col_2", "col_3", "col_1_"]),
-        )
-        self.assertEqual(
-            set(p.get_pipe_output("merge_2")["df"].columns),
-            set(["col_1", "col_2", "col_3"]),
-        )
-        self.assertEqual(
-            set(p.get_pipe_output("merge_3")["df"].columns), set(["col_1", "col_2"])
-        )
+        assert set(p.get_pipe_output("merge_1")["df"].columns) == \
+            set(["col_1", "col_2", "col_3", "col_1_"])
+        assert set(p.get_pipe_output("merge_2")["df"].columns) == \
+            set(["col_1", "col_2", "col_3"])
+        assert set(p.get_pipe_output("merge_3")["df"].columns) == set(["col_1", "col_2"])
 
     def test_label_binarizer(self):
         p = ds.Pipeline()
@@ -77,16 +73,12 @@ class TestTransform(unittest.TestCase):
         )
 
         p.fit_transform()
-        self.assertEqual(
-            set(p.get_pipe_output("label_binarizer")["df_metadata"]["target"]),
-            set([0, 1, 2]),
-        )
+        assert set(p.get_pipe_output("label_binarizer")["df_metadata"]["target"]) == \
+            set([0, 1, 2])
 
         p.transform()
-        self.assertEqual(
-            set(p.get_pipe_output("label_binarizer")["df"].columns),
-            set(["target_0", "target_1", "target_2"]),
-        )
+        assert set(p.get_pipe_output("label_binarizer")["df"].columns) == \
+            set(["target_0", "target_1", "target_2"])
 
     def test_categorical_impute(self):
         data = pd.DataFrame(
@@ -102,7 +94,7 @@ class TestTransform(unittest.TestCase):
         )
 
         p.fit_transform()
-        self.assertEqual(p.get_pipe_output("impute")["df"]["y"][2], "yes")
+        assert p.get_pipe_output("impute")["df"]["y"][2] == "yes"
 
         p = ds.Pipeline()
         p.addPipe("data", ds.data.DataPipe("df", data))
@@ -115,7 +107,7 @@ class TestTransform(unittest.TestCase):
         )
 
         p.fit_transform()
-        self.assertEqual(p.get_pipe_output("impute")["df"]["y"][2], "?")
+        assert p.get_pipe_output("impute")["df"]["y"][2] == "?"
 
     def test_random_split(self):
         p = ds.Pipeline()
@@ -131,14 +123,14 @@ class TestTransform(unittest.TestCase):
                 "split": {"split": ds.transform.RandomTrainTestSplit.TRAIN}
             }
         )
-        self.assertEqual(len(p.get_pipe_output("split")["df"]), 105)
+        assert len(p.get_pipe_output("split")["df"]) == 105
 
         p.transform(
             transform_params={
                 "split": {"split": ds.transform.RandomTrainTestSplit.TEST}
             }
         )
-        self.assertEqual(len(p.get_pipe_output("split")["df"]), 45)
+        assert len(p.get_pipe_output("split")["df"]) == 45
 
     def test_callable_split(self):
         p = ds.Pipeline()
@@ -158,29 +150,30 @@ class TestTransform(unittest.TestCase):
                 "split": {"split": ds.transform.RandomTrainTestSplit.TRAIN}
             }
         )
-        self.assertEqual(len(p.get_pipe_output("split")["df"]), 75)
+        assert len(p.get_pipe_output("split")["df"]) == 75
 
         p.transform(
             transform_params={
                 "split": {"split": ds.transform.RandomTrainTestSplit.TEST}
             }
         )
-        self.assertEqual(len(p.get_pipe_output("split")["df"]), 75)
+        assert len(p.get_pipe_output("split")["df"]) == 75
 
-    def test_remove_outliers(self):
-        p = self.pipeline
+    def test_remove_outliers(self, pipeline):
+        p = pipeline
         p.addPipe(
             "outliers", ds.transform.RemoveOutliers(1), [("filter_numeric", "df", "df")]
         )
 
         p.fit_transform(transform_params={"read": {"file_path": self.train_csv}})
-        self.assertEqual(len(p.get_pipe_output("outliers")["df"]), 2)
+        assert len(p.get_pipe_output("outliers")["df"]) == 2
 
         p.transform(transform_params={"read": {"file_path": self.test_csv}})
-        self.assertEqual(len(p.get_pipe_output("outliers")["df"]), 0)
+        assert len(p.get_pipe_output("outliers")["df"]) == 0
 
-    def test_replace_outliers_by_median(self):
-        p = self.pipeline
+    @pytest.mark.skip_dataframe_engine("dask")
+    def test_replace_outliers_by_median(self, pipeline):
+        p = pipeline
         p.addPipe(
             "outliers",
             ds.transform.ReplaceOutliersFeature("median"),
@@ -188,13 +181,13 @@ class TestTransform(unittest.TestCase):
         )
 
         p.fit_transform(transform_params={"read": {"file_path": self.train_csv}})
-        self.assertEqual(p.get_pipe_output("outliers")["df"].iloc[4]["age"], 23)
+        assert p.get_pipe_output("outliers")["df"].iloc[4]["age"] == 23
 
         p.transform(transform_params={"read": {"file_path": self.test_csv}})
-        self.assertEqual(p.get_pipe_output("outliers")["df"].iloc[1]["age"], 23)
+        assert p.get_pipe_output("outliers")["df"].iloc[1]["age"] == 23
 
-    def test_replace_outliers_by_mean(self):
-        p = self.pipeline
+    def test_replace_outliers_by_mean(self, pipeline):
+        p = pipeline
         p.addPipe(
             "outliers",
             ds.transform.ReplaceOutliersFeature("mean"),
@@ -202,13 +195,13 @@ class TestTransform(unittest.TestCase):
         )
 
         p.fit_transform(transform_params={"read": {"file_path": self.train_csv}})
-        self.assertEqual(p.get_pipe_output("outliers")["df"].iloc[4]["age"], 29.6)
+        assert p.get_pipe_output("outliers")["df"].iloc[4]["age"] == 29.6
 
         p.transform(transform_params={"read": {"file_path": self.test_csv}})
-        self.assertEqual(p.get_pipe_output("outliers")["df"].iloc[1]["age"], 29.6)
+        assert p.get_pipe_output("outliers")["df"].iloc[1]["age"] == 29.6
 
-    def test_replace_outliers_by_clip(self):
-        p = self.pipeline
+    def test_replace_outliers_by_clip(self, pipeline):
+        p = pipeline
         p.addPipe(
             "outliers",
             ds.transform.ReplaceOutliersFeature("clip"),
@@ -216,33 +209,25 @@ class TestTransform(unittest.TestCase):
         )
 
         p.fit_transform(transform_params={"read": {"file_path": self.train_csv}})
-        self.assertEqual(
-            p.get_pipe_output("outliers")["df"].iloc[4]["age"], 55.201269499772856
-        )
+        assert p.get_pipe_output("outliers")["df"].iloc[4]["age"] == 55.201269499772856
 
         p.transform(transform_params={"read": {"file_path": self.test_csv}})
-        self.assertEqual(
-            p.get_pipe_output("outliers")["df"].iloc[1]["age"], 55.201269499772856
-        )
+        assert p.get_pipe_output("outliers")["df"].iloc[1]["age"] == 55.201269499772856
 
-    def test_drop_features(self):
-        p = self.pipeline
+    def test_drop_features(self, pipeline):
+        p = pipeline
         p.addPipe("drop", ds.transform.DropFeatures("age"), [("read", "df", "df")])
 
         p.fit_transform(transform_params={"read": {"file_path": self.train_csv}})
-        self.assertEqual(
-            set(p.get_pipe_output("drop")["df"].columns),
-            set(["name", "gender", "length"]),
-        )
+        assert set(p.get_pipe_output("drop")["df"].columns) == \
+            set(["name", "gender", "length"])
 
         p.transform(transform_params={"read": {"file_path": self.test_csv}})
-        self.assertEqual(
-            set(p.get_pipe_output("drop")["df"].columns),
-            set(["name", "gender", "length"]),
-        )
+        assert set(p.get_pipe_output("drop")["df"].columns) == \
+            set(["name", "gender", "length"])
 
-    def test_filter_features(self):
-        p = self.pipeline
+    def test_filter_features(self, pipeline):
+        p = pipeline
         p.addPipe(
             "filter",
             ds.transform.FilterFeatures(["age", "length"]),
@@ -250,20 +235,16 @@ class TestTransform(unittest.TestCase):
         )
 
         p.fit_transform(transform_params={"read": {"file_path": self.train_csv}})
-        self.assertEqual(
-            set(p.get_pipe_output("filter")["df"].columns), set(["age", "length"])
-        )
+        assert set(p.get_pipe_output("filter")["df"].columns) == set(["age", "length"])
 
         p.transform(transform_params={"read": {"file_path": self.test_csv}})
-        self.assertEqual(
-            set(p.get_pipe_output("filter")["df"].columns), set(["age", "length"])
-        )
+        assert set(p.get_pipe_output("filter")["df"].columns) == set(["age", "length"])
 
-    def test_compute_feature(self):
+    def test_compute_feature(self, pipeline):
         def upper_name(row):
             return row["name"].upper()
 
-        p = self.pipeline
+        p = pipeline
         p.addPipe(
             "compute",
             ds.transform.ComputeFeature("NAME", upper_name),
@@ -271,13 +252,13 @@ class TestTransform(unittest.TestCase):
         )
 
         p.fit_transform(transform_params={"read": {"file_path": self.train_csv}})
-        self.assertEqual(p.get_pipe_output("compute")["df"].iloc[0]["NAME"], "JAN")
+        assert p.get_pipe_output("compute")["df"].iloc[0]["NAME"] == "JAN"
 
         p.transform(transform_params={"read": {"file_path": self.test_csv}})
-        self.assertEqual(p.get_pipe_output("compute")["df"].iloc[0]["NAME"], "GEA")
+        assert p.get_pipe_output("compute")["df"].iloc[0]["NAME"] == "GEA"
 
-    def test_core_feature(self):
-        p = self.pipeline
+    def test_core_feature(self, pipeline):
+        p = pipeline
         p.addPipe(
             "metadata", ds.data.DataPipe("df_metadata", {"y_true_label": "length"})
         )
@@ -291,10 +272,10 @@ class TestTransform(unittest.TestCase):
         )
 
         p.fit_transform(transform_params={"read": {"file_path": self.train_csv}})
-        self.assertEqual(p.get_pipe_output("core")["features"], ["age"])
+        assert p.get_pipe_output("core")["features"] == ["age"]
 
         p.transform(transform_params={"read": {"file_path": self.test_csv}})
-        self.assertEqual(p.get_pipe_output("core")["features"], ["age"])
+        assert p.get_pipe_output("core")["features"] == ["age"]
 
     def test_sklearn_wrapper(self):
         p = ds.Pipeline()
@@ -315,22 +296,14 @@ class TestTransform(unittest.TestCase):
                 "split": {"split": ds.transform.RandomTrainTestSplit.TRAIN}
             }
         )
-        self.assertAlmostEqual(
-            p.get_pipe_output("sklearn")["df"]["sepal length (cm)"].std(),
-            1.00,
-            places=2,
-        )
+        assert round(abs(p.get_pipe_output("sklearn")["df"]["sepal length (cm)"].std()-1.00), 2) == 0
 
         p.transform(
             transform_params={
                 "split": {"split": ds.transform.RandomTrainTestSplit.TEST}
             }
         )
-        self.assertAlmostEqual(
-            p.get_pipe_output("sklearn")["df"]["sepal length (cm)"].std(),
-            0.99,
-            places=2,
-        )
+        assert round(abs(p.get_pipe_output("sklearn")["df"]["sepal length (cm)"].std()-0.99), 2) == 0
 
     def test_filter(self):
         p = ds.Pipeline()
@@ -342,5 +315,5 @@ class TestTransform(unittest.TestCase):
         )
 
         p.fit_transform()
-        self.assertEqual(len(p.get_pipe_output("data")["df"]), 150)
-        self.assertEqual(len(p.get_pipe_output("filter")["df"]), 61)
+        assert len(p.get_pipe_output("data")["df"]) == 150
+        assert len(p.get_pipe_output("filter")["df"]) == 61

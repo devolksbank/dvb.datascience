@@ -116,7 +116,8 @@ class ReplaceOutliersFeature(PipeBase):
             ):  # check if column is only filled with numbers
                 continue
             self.features_mean[column] = df[column].mean()
-            self.features_median[column] = df[column].median()
+            if self.pipeline.dataframe_engine != 'dask':
+                self.features_median[column] = df[column].median()
             std = df[column].std()
             lower_limit = self.features_mean[column] - (
                 std * self.nr_of_std

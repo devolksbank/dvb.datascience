@@ -2,12 +2,10 @@ import pytest
 
 from dvb.datascience import pipeline
 
-def pytest_addoption(parser):
-    parser.addoption(
-        "--dataframe-engine", action="store", default="pandas", help="Specify the dataframe engine"
-    )
-
-def pytest_configure(config):
-    print(config.getoption("--dataframe-engine"))
-
-    pipeline.default_dataframe_engine = config.getoption("--dataframe-engine")
+@pytest.fixture(params=['pandas', 'dask'], )
+def dataframe_engine(request):
+    if request.node.get_marker('skip_dataframe_engine'):
+        if request.node.get_closest_marker('skip_dataframe_engine').args[0] == request.param:
+            pytest.skip('skipped on this dataframe: {}'.format(request.param))
+            return
+    pipeline.default_dataframe_engine = request.param
