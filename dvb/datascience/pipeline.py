@@ -13,6 +13,7 @@ import ipywidgets
 import matplotlib.pyplot as plt
 from IPython.core.display import HTML, display
 from pyensae.graphhelper import draw_diagram
+import dask.dataframe as dd
 
 from .pipe_base import Data, Params, PipeBase
 
@@ -149,14 +150,6 @@ class Pipeline:
     must be an instance of OutputStoreBase. At default, an OutputStoreMemory will be used.
     """
 
-    pipes: Dict = None
-    input_connectors: Dict[Optional[str], List] = None
-    output_connectors: Dict[Optional[str], List] = None
-
-    current_transform_nr: int = -1
-    transform_status: Dict[int, Status] = None
-    output_store: OutputStoreBase = None
-
     def __init__(
         self,
         output_store: Optional[OutputStoreBase] = None,
@@ -165,7 +158,7 @@ class Pipeline:
         logger.info("Initiate pipeline")
         if output_store is None:
             output_store = OutputStoreMemory()
-        self.output_store = output_store
+        self.output_store: OutputStoreBase = output_store
 
         if dataframe_engine is None:
             dataframe_engine = default_dataframe_engine
@@ -173,10 +166,10 @@ class Pipeline:
             raise ValueError('dataframe engine %s is not supported' % dataframe_engine)
         self.dataframe_engine = dataframe_engine
 
-        self.pipes = {}
-        self.input_connectors = defaultdict(list)
+        self.pipes: Dict[str, PipeBase] = {}
+        self.input_connectors: Dict[Optional[str], List] = defaultdict(list)
         """A mapping between an input pipe name and related connection tuples (output_name, output_key, input_name, input_key)"""
-        self.output_connectors = defaultdict(list)
+        self.output_connectors: Dict[Optional[str], List]  = defaultdict(list)
         """A mapping between an output pipe name and related connection tuples (output_name, output_key, input_name, input_key)"""
 
         # Input containing nodes/edge definitions for blockdiag
@@ -246,13 +239,8 @@ class Pipeline:
                 "A pipe with name '" + name + "' is already present in ths pipeline"
             )
 
-        assert isinstance(pipe, PipeBase)
-
         pipe.name = name
-        pipe.pipeline = self
-        if hasattr(pipe, 'sub_pipeline'):
-            pipe.sub_pipeline.dataframe_engine = self.dataframe_engine
-            # TODO: also for sub_pipeline o sub_pipeline
+        pipe.setPipeline(self)
         self.pipes[name] = pipe
 
         if inputs:
@@ -438,6 +426,20 @@ class Pipeline:
 
         return r
 
+    @classmethod
+    def _compute_when_needed(cls, data: Data):
+        """
+        Data can contain lazy DataFrames. When a df is lazy, that one is computed.
+        """
+        d = {}
+
+        for key, df in data.items():
+            if type(df) in (dd.DataFrame, dd.Series):
+                df = df.compute()
+            d[key] = df
+
+        return d
+
     def get_pipe_output(self, name: str, transform_nr: int = None) -> Dict:
         """
         Get the output of the pipe with `name` and the given `transform_nr` (which default to None
@@ -447,7 +449,9 @@ class Pipeline:
         if transform_nr is None:
             transform_nr = self.current_transform_nr
 
-        return self.output_store.load_pipe_output(name, self.current_transform_nr)
+        return self._compute_when_needed(
+                self.output_store.load_pipe_output(name, self.current_transform_nr)
+            )
 
     @staticmethod
     def get_params(params: Dict, key: str, metadata: Dict = None) -> Dict:

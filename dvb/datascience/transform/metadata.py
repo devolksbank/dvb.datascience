@@ -77,4 +77,3 @@ class MetadataPipeline(SubPipelineBase):
             Union(len(rows)),
             [(i[0], "df", "df%s" % i[1]) for i in union_input]
         )
-

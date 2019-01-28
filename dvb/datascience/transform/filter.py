@@ -19,6 +19,10 @@ class FilterObservations(PipeBase):
 
         self.filter_ = filter_
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
+        return {"df": df[df.apply(self.filter_, axis=1)]}
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        df = data["df"]
         return {"df": df[df.apply(self.filter_, axis=1)]}

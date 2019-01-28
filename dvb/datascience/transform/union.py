@@ -85,6 +85,7 @@ class Union(PipeBase):
             else:
 
                 def check_name(name):
+                    # make a unique name
                     while name in found_column_names:
                         name = name + "_"
                     found_column_names.add(name)

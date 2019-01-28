@@ -31,7 +31,7 @@ class DimensionReductionPlots(AnalyticsBase):
         self.y_label = y_label
         self.n_neighbors = 10
         self.n_components = 2
-        self.pca = None
+        self.pca: PCA = None
 
     def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]

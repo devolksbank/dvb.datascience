@@ -8,16 +8,16 @@ with codecs.open(path.join(here, "README.md"), encoding="utf-8") as f:
     long_description = f.read()
 
 setup(
-    name="dvb.datascience",  # Required
+    name="dvb.datascience",
     version="0.13.dev0",
-    description="Some helpers for our data scientist",  # Required
-    long_description=long_description,  # Optional
-    long_description_content_type="text/markdown",  # Optional (see note above)
-    url="https://github.com/devolksbank/dvb.datascience",  # Optional
-    author="Technology Center, de Volksbank (NL)",  # Optional
-    author_email="tc@devolksbank.nl",  # Optional
+    description="Some helpers for our data scientist",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/devolksbank/dvb.datascience",
+    author="Technology Center, de Volksbank (NL)",
+    author_email="tc@devolksbank.nl",
     license="MIT License",
-    classifiers=[  # Optional
+    classifiers=[
         "Development Status :: 3 - Alpha",
         "Intended Audience :: Developers",
         "Topic :: Software Development :: Build Tools",
@@ -26,8 +26,8 @@ setup(
         "Programming Language :: Python :: 3.7",
     ],
     zip_safe=True,
-    keywords="datascience sklearn pipeline pandas eda train",  # Optional
-    packages=find_packages(exclude=["contrib", "docs", "tests"]),  # Required
+    keywords="datascience sklearn pipeline pandas eda train",
+    packages=find_packages(exclude=["contrib", "docs", "tests"]),
     install_requires=[
         "scipy",
         "numpy",
@@ -43,17 +43,19 @@ setup(
         "blockdiag",
         "pyensae",
         "TPOT",
+        # TODO: make dask optional
         "dask[array, bag, dataframe, distributed, delayed]",
-    ],  # Optional
-    extras_require={  # Optional
+        "dask_ml",
+    ],
+    extras_require={
         "dev": ["zest.releaser[recommended]"],
         "test": ["coverage", "pytest", "pytest-cov", "pexpect"],
         "release": ["zest.releaser"],
         "teradata": ["teradata"],
         "docs": ["sphinx", "m2r", "nbsphinx", "jupyter_client", "nbconvert==5.3.1"],
     },
-    package_data={},  # Optional
-    data_files=[],  # Optional
-    entry_points={},  # Optional
-    project_urls={},  # Optional
+    package_data={},
+    data_files=[],
+    entry_points={},
+    project_urls={},
 )

@@ -37,3 +37,6 @@ class AndrewsPlot(PipeBase):
         plt.title("Andrews curves")
 
         return {"figs": self.figs}
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        raise NotImplementedError

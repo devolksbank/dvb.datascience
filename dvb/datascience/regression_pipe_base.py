@@ -1,5 +1,5 @@
 import abc
-from typing import Any, List, Mapping, Optional, Tuple, Callable, Union
+from typing import Any, List, Optional, Tuple, Callable, Union
 
 from .pipe_base import Data, Params, PipeBase
 
@@ -10,15 +10,24 @@ class RegressionPipeBase(PipeBase):
     methods are reusable for different kind of classification based pipes.
     """
 
-    y_true_label = ""
-    y_pred_label = ""
-    X_labels: List[str] = None
+    def __init__(self):
+        super().__init__()
 
-    fit_attributes: List[Tuple[str, Optional[Union[str, Callable]], Optional[Union[str, Callable]]]] = [
-        ("y_true_label", None, None),
-        ("y_pred_label", None, None),
-        ("X_labels", None, None),
-    ]
+        self.y_true_label = ""
+        self.y_pred_label = ""
+        self.X_labels: List[str] = None
+
+        self.fit_attributes: List[
+            Tuple[str, Optional[Union[str, Callable]], Optional[Union[str, Callable]]]
+        ] = [
+            ("y_true_label", None, None),
+            ("y_pred_label", None, None),
+            ("X_labels", None, None),
+        ]
+
+        self.y_true: Optional[List] = None
+        self.y_pred: List = None
+        self.X: Any = None
 
     @abc.abstractmethod
     def transform(self, data: Data, params: Params) -> Data:
@@ -31,12 +40,8 @@ class RegressionPipeBase(PipeBase):
             "X_labels", list(set(df.columns) - set([self.y_true_label]))
         )  # the features, default: all labels except y
 
-
-    y_true: Optional[List] = None
-    y_pred: List = None
-    X : Any = None
-
     def _set_predict_data(self, df, df_metadata):
+        del df_metadata
         self.X = df[self.X_labels]
         self.y_true = None
         if self.y_true_label in df.columns:

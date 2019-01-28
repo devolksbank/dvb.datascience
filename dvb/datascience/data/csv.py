@@ -2,40 +2,40 @@ import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from io import StringIO
-from typing import Dict
-from typing import List
+from typing import Dict, Any, List
 
 from ..pipe_base import Data, Params, PipeBase
 
 
 class MetaData:
     varTypes = {
-        'ind': np.bool,
-        'numi': np.float64,
-        'cat': np.str,
-        'oms': np.str,
-        'cd': np.str,
-        'numc': np.float64,
+        "ind": np.bool,
+        "numi": np.float64,
+        "cat": np.str,
+        "oms": np.str,
+        "cd": np.str,
+        "numc": np.float64,
     }
-
-    dtypes: Dict = None
 
     def __init__(self, file: str):
         self.metadata = pd.read_csv(file, sep=None, engine="python")
-        self.dtypes = {}
+        self.dtypes: Dict[str, Any] = {}
         for row in self.metadata.itertuples():
             self.dtypes[row.nameVar] = self.varTypes[row.varType]
 
-        self.vars = {}
+        self.vars: Dict[str, Dict[str, Any]] = {}
         for row in self.metadata.itertuples():
             d = {
-                'nameVar': row.nameVar,
-                'varType': row.varType,
-                'PREFIX': row.PREFIX,
-                'impMethod': row.impMethod,
-                'timing': row.timing,
+                "nameVar": row.nameVar,
+                "varType": row.varType,
+                "PREFIX": row.PREFIX,
+                "impMethod": row.impMethod,
+                "timing": row.timing,
             }
             self.vars[row.nameVar] = d
+
+    def items(self):
+        return self.metadata.items()
 
 
 class CSVDataImportPipe(PipeBase):
@@ -61,15 +61,14 @@ class CSVDataImportPipe(PipeBase):
     metadata = None
 
     def __init__(
-            self,
-            file_path: str = None,
-            content: str = None,
-            sep: bool = None,
-            engine: str = "python",
-            index_col: str = None,
-            metadata: MetaData = None,
-            na_values: List = None,
-
+        self,
+        file_path: str = None,
+        content: str = None,
+        sep: bool = None,
+        engine: str = "python",
+        index_col: str = None,
+        metadata: MetaData = None,
+        na_values: List = None,
     ) -> None:
         super().__init__()
         self.file_path = file_path
@@ -152,12 +151,8 @@ class CSVDataExportPipe(PipeBase):
 
     def transform_dask(self, data: Data, params: Params) -> Data:
         file_path = params.get("file_path") or self.file_path
-        if isinstance(file_path, str) and not '*' in file_path:
+        if isinstance(file_path, str) and not "*" in file_path:
             file_path = [file_path]
 
-        data["df"].to_csv(
-            file_path,
-            sep=params.get("sep") or self.sep,
-            **self.kwargs
-        )
+        data["df"].to_csv(file_path, sep=params.get("sep") or self.sep, **self.kwargs)
         return {}

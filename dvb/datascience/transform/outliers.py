@@ -36,7 +36,7 @@ class RemoveOutliers(PipeBase):
 
         self.boundaries: Dict[str, Tuple[float, float]] = {}
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         df = data["df"]
 
         for column in df.columns:
@@ -49,7 +49,7 @@ class RemoveOutliers(PipeBase):
                 mean + self.nr_of_std * std,
             )
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
 
         def keep_observation(row):
@@ -65,7 +65,7 @@ class RemoveOutliers(PipeBase):
 
             return True
 
-        return {"df": df[df.apply(keep_observation, axis=1)]}
+        return Data({"df": df[df.apply(keep_observation, axis=1)]})
 
 
 class ReplaceOutliersFeature(PipeBase):
@@ -94,12 +94,15 @@ class ReplaceOutliersFeature(PipeBase):
         ("features_limit", "pickle", "pickle"),
     ]
 
+    supported_methods = ("median", "mean", "clip")
+
     def __init__(self, method: str = "median", nr_of_std: float = 1.5) -> None:
         """
         """
         super().__init__()
 
-        assert method in ("median", "mean", "clip")
+        if not method in self.supported_methods:
+            raise ValueError("Method %s is not supported" % method)
         self.method = method
         self.nr_of_std = nr_of_std
 
@@ -107,7 +110,7 @@ class ReplaceOutliersFeature(PipeBase):
         self.features_mean: Dict[str,float] = {}
         self.features_median: Dict[str,float] = {}
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         df = data["df"]
 
         for column in df.columns:
@@ -115,9 +118,11 @@ class ReplaceOutliersFeature(PipeBase):
                 df[column]
             ):  # check if column is only filled with numbers
                 continue
+
             self.features_mean[column] = df[column].mean()
-            if self.pipeline.dataframe_engine != 'dask':
-                self.features_median[column] = df[column].median()
+
+            self.features_median[column] = df[column].median()
+
             std = df[column].std()
             lower_limit = self.features_mean[column] - (
                 std * self.nr_of_std
@@ -132,29 +137,74 @@ class ReplaceOutliersFeature(PipeBase):
                 higher_limit = df[column].max()
             self.features_limit[column] = (lower_limit, higher_limit)
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def fit_dask(self, data: Data, params: Params):
+        df = data["df"]
+
+        for column in df.columns:
+            if not is_numeric_dtype(
+                df[column]
+            ):  # check if column is only filled with numbers
+                continue
+            self.features_mean[column] = df[column].mean().compute()
+            std = df[column].std().compute()
+            lower_limit = self.features_mean[column] - (
+                std * self.nr_of_std
+            )  # lowest value to be considered not an outlier
+            min_ = df[column].min().compute()
+            if lower_limit < min_:
+                lower_limit = min_
+
+            higher_limit = self.features_mean[column] + (
+                std * self.nr_of_std
+            )  # highest value to be considered not an outlier
+            max_ = df[column].max().compute()
+            if higher_limit > max_:
+                higher_limit = max_
+            self.features_limit[column] = (lower_limit, higher_limit)
+
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
 
         for column in df.columns:
             df.loc[:, column] = df[column].apply(self._replace_outlier, column=column)
 
-        return {"df": df}
+        return Data({"df": df})
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        df = data["df"]
+
+        if self.method == "median":
+            raise NotImplementedError("Dask does not support median")
+
+        column_dfs = {}
+        for column in df.columns:
+            column_dfs[column] = df[column].apply(self._replace_outlier, column=column)
+
+        df = df.assign(**column_dfs)
+
+        return Data({"df": df})
 
     def _replace_outlier(self, x, column):
         try:  # check if x is actually a number
             float(x)
-        except:
+        except (TypeError, ValueError):
             return x
+
         if x >= self.features_limit[column][0] and x <= self.features_limit[column][1]:
             return x
+
         if self.method == "mean":
             return self.features_mean[column]
+
         if self.method == "median":
             return self.features_median[column]
+
         if (
             self.method == "clip"
         ):  # if value is lower/higher than nearest acceptable change it to nearest acceptable
             if x < self.features_limit[column][0]:
                 return self.features_limit[column][0]
-            else:
-                return self.features_limit[column][1]
+
+            return self.features_limit[column][1]
+
+        raise ValueError("Unknown method %s" % self.method)

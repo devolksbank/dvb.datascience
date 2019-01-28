@@ -5,7 +5,8 @@ from scipy import stats
 from sklearn.feature_selection import RFE
 from sklearn.linear_model import LogisticRegression
 
-from ..classification_pipe_base import ClassificationPipeBase, Data, Params
+from ..classification_pipe_base import ClassificationPipeBase
+from ..pipe_base import Data, Params
 
 stats.chisqprob = stats.chi2.sf
 
@@ -33,19 +34,17 @@ class GetCoreFeatures(ClassificationPipeBase):
         self.n_features = n_features
         self.core_features: List[str] = []
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         self._set_classification_labels(data["df"], data["df_metadata"])
         X = data["df"][self.X_labels]
         y = data["df"][self.y_true_label]
         self.core_features = self.get_core_features(X, y)
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         if self.core_features is None:
             raise ValueError("The fit method has not run.")
 
-        features = self.core_features
-
-        return {"features": features}
+        return Data({"features": self.core_features})
 
     def get_core_features(self, X, y) -> List[str]:
         if self.method == "SFS":

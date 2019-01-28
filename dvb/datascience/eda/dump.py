@@ -22,6 +22,7 @@ class Dump(AnalyticsBase):
     def transform_pandas(self, data: Data, params: Params) -> Data:
         with pd.option_context("display.max_rows", None, "display.max_columns", None):
             display(data["df"])
+
         return {"output": data["df"]}
 
     def transform_dask(self, data, params):

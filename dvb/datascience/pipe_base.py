@@ -3,7 +3,7 @@ import codecs
 import logging
 import pickle
 from collections import defaultdict
-from typing import Any, Dict, List, Tuple, Sequence, Optional, Union, Callable, NewType
+from typing import Any, Dict, List, Tuple, Sequence, Optional, Union, Callable
 import dask.dataframe as dd
 import pandas as pd
 
@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 logger = logging.getLogger(__name__)
 
 
-Data = NewType('Data', Dict[str, Any])
-Params = NewType('Params', Dict[str, Any])
+Data = Dict[str, Any]
+Params = Dict[str, Any]
 
 
 class PipeBase(metaclass=abc.ABCMeta):
@@ -24,13 +24,9 @@ class PipeBase(metaclass=abc.ABCMeta):
     input_keys: Tuple[str, ...] = ("df",)
     output_keys: Tuple[str, ...] = ("df",)
 
-    name: str = None
-
-    pipeline = None # type: "dvb.datascience.pipeline.Pipeline"
-
-    fit_attributes: Sequence[Tuple[str, Optional[Union[str, Callable]], Optional[Union[str, Callable]]]] = (
-        tuple()
-    )
+    fit_attributes: Sequence[
+        Tuple[str, Optional[Union[str, Callable]], Optional[Union[str, Callable]]]
+    ] = (tuple())
 
     def __repr__(self):
         return f"Pipe({self.name!r})"
@@ -39,7 +35,14 @@ class PipeBase(metaclass=abc.ABCMeta):
         # a mapping from transform nr to a mapping with different kinds of data which are needed to store the transform
         # results for combining the results of multiple transforms in one output
         logger.info("Initiating pipe base")
-        self.transform_data = defaultdict(dict)  # Dict[str, Dict[str, Any]]
+        self.transform_data: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        self.figs: Dict[Any, plt.Figure] = {}
+        self.name: str = None
+        self.pipeline: "dvb.datascience.pipeline.Pipeline" = None
+
+    def setPipeline(self, pipeline):
+        # will be called by addPipe
+        self.pipeline = pipeline
 
     def get_transform_data_by_key(self, key: str) -> List[Any]:
         """
@@ -73,9 +76,8 @@ class PipeBase(metaclass=abc.ABCMeta):
         Train on a dataset `df` and store the learnings so `transform` can be called later on
         to transform based on the learnings.
         """
-        m = getattr(self, 'fit_'+ self.pipeline.dataframe_engine)
+        m = getattr(self, "fit_" + self.pipeline.dataframe_engine)
         return m(data, params)
-
 
     def transform_pandas(self, data: Data, params: Params) -> Data:
         """
@@ -84,7 +86,6 @@ class PipeBase(metaclass=abc.ABCMeta):
         The transformed dataset will be the input for the next plumber.
         The output will be collected and shown to the user.
         """
-        pass
 
     def transform_dask(self, data: Data, params: Params) -> Data:
         """
@@ -94,16 +95,17 @@ class PipeBase(metaclass=abc.ABCMeta):
         The output will be collected and shown to the user.
         """
         # Default/fallback: convert pandas to dask
-        d = {}
+        d = Data({})
 
         for key, df in self.transform_pandas(data, params).items():
             if type(df) in (pd.DataFrame, pd.Series):
-                df = dd.from_pandas(df, chunksize=1).compute()  # TO CHECK: is it wise to use compute here?
+                df = dd.from_pandas(
+                    df, chunksize=1
+                ).compute()  # TO CHECK: is it wise to use compute here?
 
             d[key] = df
 
         return d
-
 
     def transform_pyspark(self, data: Data, params: Params) -> Data:
         """
@@ -112,7 +114,6 @@ class PipeBase(metaclass=abc.ABCMeta):
         The transformed dataset will be the input for the next plumber.
         The output will be collected and shown to the user.
         """
-        pass
 
     def transform(self, data: Data, params: Params) -> Data:
         """
@@ -121,10 +122,8 @@ class PipeBase(metaclass=abc.ABCMeta):
         The transformed dataset will be the input for the next plumber.
         The output will be collected and shown to the user.
         """
-        m = getattr(self, 'transform_'+ self.pipeline.dataframe_engine)
+        m = getattr(self, "transform_" + self.pipeline.dataframe_engine)
         return m(data, params)
-
-    figs: Dict[Any, plt.Figure] = None
 
     def get_fig(self, idx: Any):
         """
@@ -133,9 +132,6 @@ class PipeBase(metaclass=abc.ABCMeta):
         When `idx` has already be used, it will set the same Figure
         so data can be added to that plot. Otherwise a new Figure will be set
         """
-        if self.figs is None:
-            self.figs = {}
-
         if idx not in self.figs:
             self.figs[idx] = plt.figure()
 
@@ -192,8 +188,8 @@ class PipeBase(metaclass=abc.ABCMeta):
 
     @staticmethod
     def _pickle_base64_stringify(obj: Any) -> str:
-        return codecs.encode(pickle.dumps(obj), "base64").decode()
+        return codecs.encode(pickle.dumps(obj), "base64").decode()  # type: ignore
 
     @staticmethod
     def _string_base64_pickle(obj: str) -> Any:
-        return pickle.loads(codecs.decode(obj.encode(), "base64"))
+        return pickle.loads(codecs.decode(obj.encode(), "base64")) # type: ignore

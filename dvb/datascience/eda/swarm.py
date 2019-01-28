@@ -20,7 +20,7 @@ class SwarmPlots(PipeBase):
     input_keys = ("df",)
     output_keys = ("figs",)
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         display(HTML("<h2>Swarmplots Transform %s</h2>" % params["metadata"]["name"]))
 
         df = data["df"]
@@ -39,3 +39,6 @@ class SwarmPlots(PipeBase):
                 display(fig)
 
         return {"figs": self.figs}
+
+    def transform_dask(self, data, params):
+        raise NotImplementedError("Dask dataframe may be too large for swarm plots")

@@ -1,4 +1,3 @@
-
 from typing import Optional, Any
 
 import numpy as np
@@ -53,12 +52,12 @@ class ImputeWithDummy(PipeBase):
             self._set_impute_value_train(df.mean())
 
         if self.strategy == "median":
-            print('Not Implemented in Dask. Use mean as fallback')
+            print("Not Implemented in Dask. Use mean as fallback")
             self._set_impute_value_train(df.mean())
             # self._set_impute_value_train(df.median())
 
         if self.strategy == "mode":
-            print('Not Implemented in Dask. Use mean as fallback')
+            print("Not Implemented in Dask. Use mean as fallback")
             self._set_impute_value_train(df.mean())
             # self._set_impute_value_train(df.mode().iloc[0])
 
@@ -113,7 +112,7 @@ class CategoricalImpute(PipeBase):
         self.strategy = strategy
         self.fill = {}
 
-        strategies = ["fixed_value", "mode"]
+        strategies = ["fixed_value", "mode", "mean"]
         if self.strategy not in strategies:
             raise ValueError(
                 "Strategy {0} not in {1}".format(self.strategy, strategies)
@@ -139,7 +138,7 @@ class CategoricalImpute(PipeBase):
         else:
             return X == value
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         """
         Get the most frequent value.
         """
@@ -148,15 +147,37 @@ class CategoricalImpute(PipeBase):
             mask = self._get_mask(X, self.missing_values)
             X = X[mask.__invert__()]  # unary ~ gives a pylint error
             if self.strategy == "mode":
-                modes = pd.Series(X).mode()
+                mode = pd.Series(X).mode()
+                if mode.shape[0] == 0:
+                    raise ValueError(
+                        "No value is repeated more than once in the column"
+                    )
+                replacement = mode[0]
+            elif self.strategy == "mean":
+                replacement = pd.Series(X).mean()
             elif self.strategy == "fixed_value":
-                modes = np.array([self.replacement])
-            if modes.shape[0] == 0:
-                raise ValueError("No value is repeated more than once in the column")
+                replacement = self.replacement
 
-            self.fill[column] = modes[0]
+            self.fill[column] = replacement
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def fit_dask(self, data: Data, params: Params):
+        """
+        Get the most frequent value.
+        """
+        for column in data["df"].columns:
+            X = data["df"][column]
+            mask = self._get_mask(X, self.missing_values)
+            X = X[mask.__invert__()]  # unary ~ gives a pylint error
+            if self.strategy == "mode":
+                replacement = X.value_counts().index[0]
+            elif self.strategy == "mean":
+                replacement = X.mean()
+            elif self.strategy == "fixed_value":
+                replacement = self.replacement
+
+            self.fill[column] = replacement
+
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         """
         Replaces missing values in the input data with the most frequent value
         of the training data.
@@ -167,4 +188,17 @@ class CategoricalImpute(PipeBase):
             mask = self._get_mask(df[column], self.missing_values)
             df[column][mask] = self.fill[column]
 
-        return {"df": df}
+        return Data({"df": df})
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        """
+        Replaces missing values in the input data with the most frequent value
+        of the training data.
+        """
+        df = data["df"]
+
+        for column in df.columns:
+            mask = self._get_mask(df[column], self.missing_values)
+            df[column][mask] = self.fill[column]
+
+        return Data({"df": df})

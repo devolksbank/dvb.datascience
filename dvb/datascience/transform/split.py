@@ -32,7 +32,7 @@ class RandomTrainTestSplit(TrainTestSplitBase):
         self.random_state = random_state
         self.test_size = test_size
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         split = params.get("split", self.ALL)
         if split == self.ALL:
             return {"df": data["df"]}
@@ -81,7 +81,7 @@ class CallableTrainTestSplit(TrainTestSplitBase):
 
         self.c = c
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         split = params.get("split", self.ALL)
         df = data["df"]
 

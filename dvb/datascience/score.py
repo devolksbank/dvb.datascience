@@ -1,6 +1,6 @@
 import itertools
 import logging
-from typing import List, Optional, Mapping
+from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +10,8 @@ import tabulate
 from IPython.core.display import HTML, display
 from sklearn.preprocessing import label_binarize
 
-from .classification_pipe_base import ClassificationPipeBase, Data, Params
+from .classification_pipe_base import ClassificationPipeBase
+from .pip_base import Data, Params
 
 logger = logging.getLogger(__name__)
 

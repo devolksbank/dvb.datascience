@@ -44,7 +44,7 @@ class SMOTESampler(ClassificationPipeBase):
     def fit(self, data: Data, params: Params):
         self._set_classification_labels(data["df"], data["df_metadata"])
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         self._set_classification_data(data["df"], data["df_metadata"])
 
         smote = SMOTE(**self.kwargs)
@@ -54,3 +54,6 @@ class SMOTESampler(ClassificationPipeBase):
         new_df[self.y_true_label] = new_y_true
 
         return {"df": new_df}
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        raise NotImplementedError("Dask does not support SMOTE")

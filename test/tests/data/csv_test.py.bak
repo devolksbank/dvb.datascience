@@ -1,4 +1,5 @@
 import pytest
+import unittest
 import pathlib
 
 import pandas as pd
@@ -8,11 +9,12 @@ import dvb.datascience as ds
 
 
 @pytest.mark.usefixtures("dataframe_engine")
-class TestCsv:
+class TestCsv(unittest.TestCase):
 
-    @property
-    def train_data(self):
-        train_data = pd.DataFrame(
+    def setUp(self):
+        self.pipeline = ds.Pipeline()
+
+        self.train_data = pd.DataFrame(
             [
                 ["jan", 20, "M", 180],
                 ["marie", 21, "W", 164],
@@ -23,45 +25,51 @@ class TestCsv:
             columns=["name", "age", "gender", "length"],
         ).sort_index(axis=1)
 
-        if ds.pipeline.default_dataframe_engine == 'dask':
-            train_data = dd.from_pandas(train_data, chunksize=1).compute()
+        if self.pipeline.dataframe_engine == "dask":
+            self.train_data = dd.from_pandas(self.train_data, chunksize=1).compute()
 
-        return train_data
-
-    file_path = "test/data/train.csv"
-
-    @property
-    def content(self):
+        self.file_path = "test/data/train.csv"
         with open(self.file_path) as f:
-            return f.read()
+            self.content = f.read()
+
+    def _compute_when_needed(self, df):
+        if self.pipeline.dataframe_engine == 'dask':
+            return df.compute()
+
+        return df
 
     def test_read_file(self):
-        p = ds.Pipeline()
+        p = self.pipeline
         p.addPipe("read", ds.data.CSVDataImportPipe(file_path=self.file_path))
         p.transform()
         df = p.get_pipe_output("read")["df"]
+        df = self._compute_when_needed(df)
         # make sure the order of the columns is correct
         df = df[["age", "gender", "length", "name"]]
-        assert pd.DataFrame.equals(df, self.train_data)
+        self.assertTrue(pd.DataFrame.equals(df, self.train_data))
 
-    @pytest.mark.skip_dataframe_engine("dask")
+    @pytest.mark.skipif(
+        ds.pipeline.default_dataframe_engine == "dask",
+        reason="Dask does not support reading from content",
+    )
     def test_read_content(self):
-        p = ds.Pipeline()
+        p = self.pipeline
         p.addPipe("read", ds.data.CSVDataImportPipe(content=self.content))
         p.transform()
         df = p.get_pipe_output("read")["df"]
-        assert pd.DataFrame.equals(df, self.train_data)
+        self.assertTrue(pd.DataFrame.equals(df, self.train_data))
 
     def test_read_init_params(self):
-        p = ds.Pipeline()
+        p = self.pipeline
         p.addPipe("read", ds.data.CSVDataImportPipe())
         p.transform(
             data=None, transform_params={"read": {"file_path": "test/data/train.csv"}}
         )
         df = p.get_pipe_output("read")["df"]
+        df = self._compute_when_needed(df)
         # make sure the order of the columns is correct
         df = df[["age", "gender", "length", "name"]]
-        assert pd.DataFrame.equals(df, self.train_data)
+        self.assertTrue(pd.DataFrame.equals(df, self.train_data))
 
     def test_read_custom_separator(self):
         pass
@@ -76,7 +84,7 @@ class TestCsv:
         pathlib.Path("./tmp").mkdir(parents=True, exist_ok=True)
         output_file = "tmp/unittest-csv_test-test_write_output.csv"
 
-        p = ds.Pipeline()
+        p = self.pipeline
         p.addPipe("read", ds.data.CSVDataImportPipe(file_path="test/data/test.csv"))
         p.addPipe(
             "write",
@@ -85,13 +93,13 @@ class TestCsv:
         )
         p.transform()
         output = p.get_pipe_output("write")
-        assert output == dict()
+        self.assertEqual(output, dict())
 
         # Inspect the file on disk
         with open(output_file, "r") as content_file:
             content = content_file.read().split('\n')
-            assert set(content[0].split(',')) == set(["", "age", "gender", "length", "name"])
-            assert set(content[1].split(',')) == set(["0", "25", "W", "161", "gea"])
+            self.assertEqual(set(content[0].split(',')), set(["", "age", "gender", "length", "name"]))
+            self.assertEqual(set(content[1].split(',')), set(["0", "25", "W", "161", "gea"]))
 
     def test_write_init_params(self):
         pass

@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 from .pipe_base import Data, Params, PipeBase
 from .pipeline import Pipeline
@@ -6,6 +6,8 @@ from .pipeline import Pipeline
 
 class PassData(PipeBase):
     def __init__(self, parent_pipeline, output_keys):
+        super().__init__()
+
         self.output_keys = output_keys
         self.parent_pipeline = parent_pipeline
 
@@ -14,7 +16,6 @@ class PassData(PipeBase):
 
 
 class SubPipelineBase(PipeBase):
-    sub_pipeline = None  # The pipeline which is the pipeline which is inserted as this pipe
 
     def __init__(self, output_pipe_name: str) -> None:
         """
@@ -26,6 +27,11 @@ class SubPipelineBase(PipeBase):
         self.sub_pipeline = Pipeline()
         self.sub_pipeline.addPipe("pass_data", PassData(self, self.input_keys))
         self.output_pipe_name = output_pipe_name
+        self.data_from_pipeline: Optional[Data] = None
+
+    def setPipeline(self, pipeline):
+        self.pipeline = pipeline
+        self.sub_pipeline.dataframe_engine = pipeline.dataframe_engine
 
     def fit_transform(
         self, data: Data, transform_params: Params, fit_params: Params

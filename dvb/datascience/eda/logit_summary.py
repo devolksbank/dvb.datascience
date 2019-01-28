@@ -1,7 +1,8 @@
 import statsmodels.api as sm
 from IPython.core.display import HTML, display
 
-from ..classification_pipe_base import ClassificationPipeBase, Data, Params
+from ..classification_pipe_base import ClassificationPipeBase
+from ..pipe_base import Data, Params
 
 
 class LogitSummary(ClassificationPipeBase):
@@ -25,7 +26,7 @@ class LogitSummary(ClassificationPipeBase):
         self.use_regularized = use_regularized
         self.kwargs = kwargs
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         self._set_classification_labels(data["df"], data["df_metadata"])
         df = data["df"].copy()
         if self.y_true_label not in df:
@@ -44,3 +45,6 @@ class LogitSummary(ClassificationPipeBase):
         display(HTML(summary.as_html()))
 
         return {"summary": summary}
+
+    def transform_dask(self, data, params):
+        raise NotImplementedError("Dask dataframe may be too large for logit summary")

@@ -122,7 +122,9 @@ class FilterFeatures(SpecifyFeaturesBase):
     def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
 
-        features: List[str] = [] if self.features is None else  [i for i in self.features if i in df.columns]
+        features: List[str] = [] if self.features is None else [
+            i for i in self.features if i in df.columns
+        ]
 
         return {"df": df[features]}
 
@@ -152,7 +154,7 @@ class FilterTypeFeatures(PipeBase):
 
 class MetadataFilter(FilterFeatures):
 
-    input_keys = ("df", 'metadata_df')
+    input_keys = ("df", "metadata_df")
     output_keys = ("df",)
 
     def __init__(self, c: Callable, metadata: MetaData):
@@ -161,6 +163,8 @@ class MetadataFilter(FilterFeatures):
 
         :param c: a callable which accept a dict with the metadata of a column and return True when the column must be kept
         """
+        super().__init__()
+
         self.c = c
         self.features = [k for k, v in metadata.items() if c(v)]
 
@@ -187,8 +191,16 @@ class ComputeFeature(PipeBase):
         self.f = f
         self.c = c
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
+
+        if self.c is None or self.c(df):
+            df[self.column_name] = df.apply(self.f, axis=1)
+
+        return {"df": df}
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        df = data["df"]
 
         if self.c is None or self.c(df):
             df[self.column_name] = df.apply(self.f, axis=1)
