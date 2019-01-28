@@ -11,7 +11,7 @@ from IPython.core.display import HTML, display
 from sklearn.preprocessing import label_binarize
 
 from .classification_pipe_base import ClassificationPipeBase
-from .pip_base import Data, Params
+from .pipe_base import Data, Params
 
 logger = logging.getLogger(__name__)
 

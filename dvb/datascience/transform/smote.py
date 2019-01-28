@@ -1,7 +1,8 @@
 import pandas as pd
 from imblearn.over_sampling import SMOTE
 
-from ..classification_pipe_base import ClassificationPipeBase, Data, Params
+from ..classification_pipe_base import ClassificationPipeBase
+from ..pipe_base import Data, Params
 
 
 class SMOTESampler(ClassificationPipeBase):

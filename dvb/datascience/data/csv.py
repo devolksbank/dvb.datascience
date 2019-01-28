@@ -1,8 +1,10 @@
+import pathlib
+from io import StringIO
+from typing import Any, Dict, List, Union
+
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-from io import StringIO
-from typing import Dict, Any, List
 
 from ..pipe_base import Data, Params, PipeBase
 
@@ -17,7 +19,7 @@ class MetaData:
         "numc": np.float64,
     }
 
-    def __init__(self, file: str):
+    def __init__(self, file: Union[pathlib.Path, str]):
         self.metadata = pd.read_csv(file, sep=None, engine="python")
         self.dtypes: Dict[str, Any] = {}
         for row in self.metadata.itertuples():
@@ -62,7 +64,7 @@ class CSVDataImportPipe(PipeBase):
 
     def __init__(
         self,
-        file_path: str = None,
+        file_path: Union[pathlib.Path, str] = None,
         content: str = None,
         sep: bool = None,
         engine: str = "python",
@@ -90,7 +92,7 @@ class CSVDataImportPipe(PipeBase):
         content = params.get("content") or self.content
         if content:
             content = StringIO(content)
-        file_path = params.get("file_path") or self.file_path
+        file_path: Union[pathlib.Path, str] = params.get("file_path") or self.file_path
         df = pd.read_csv(
             content or file_path,
             sep=params.get("sep") or self.sep,
@@ -104,7 +106,7 @@ class CSVDataImportPipe(PipeBase):
         content = params.get("content") or self.content
         if content:
             content = StringIO(content)
-        file_path = params.get("file_path") or self.file_path
+        file_path: Union[pathlib.Path, str] = params.get("file_path") or self.file_path
         df = dd.read_csv(
             content or file_path,
             sep=params.get("sep") or self.sep,
@@ -134,7 +136,7 @@ class CSVDataExportPipe(PipeBase):
     input_keys = ("df",)
     output_keys = ()
 
-    def __init__(self, file_path: str = None, sep: str = None, **kwargs) -> None:
+    def __init__(self, file_path: Union[pathlib.Path, str] = None, sep: str = None, **kwargs) -> None:
         super().__init__()
 
         self.file_path = file_path
@@ -151,7 +153,7 @@ class CSVDataExportPipe(PipeBase):
 
     def transform_dask(self, data: Data, params: Params) -> Data:
         file_path = params.get("file_path") or self.file_path
-        if isinstance(file_path, str) and not "*" in file_path:
+        if isinstance(file_path, (str, pathlib.Path)) and not "*" in file_path:
             file_path = [file_path]
 
         data["df"].to_csv(file_path, sep=params.get("sep") or self.sep, **self.kwargs)

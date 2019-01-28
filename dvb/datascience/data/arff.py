@@ -1,3 +1,6 @@
+from typing import Union
+import pathlib
+
 import numpy as np
 import pandas as pd
 from scipy.io import arff
@@ -19,7 +22,7 @@ class ARFFDataImportPipe(PipeBase):
     input_keys = ()
     output_keys = ("df",)
 
-    file_path = None
+    file_path: Union[pathlib.Path, str] = None
 
     fit_attributes = [("file_path", None, None)]
 
@@ -46,20 +49,17 @@ class ARFFDataExportPipe(PipeBase):
     input_keys = ("df",)
     output_keys = ()
 
-    file_path = None
-    wekaname = None
+    file_path: Union[pathlib.Path, str] = None
+    wekaname: str = None
 
     fit_attributes = [("file_path", None, None), ("wekaname", None, None)]
 
     def fit(self, data: Data, params: Params):
-        self.file_path: str = params["file_path"]
-        self.wekaname: str = params["wekaname"]
+        self.file_path = params["file_path"]
+        self.wekaname = params["wekaname"]
 
     def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
-
-        if not isinstance(self.file_path, str):
-            raise ValueError("file_path is not a string")
 
         if not isinstance(self.wekaname, str):
             raise ValueError("wekaname is not a string")

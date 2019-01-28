@@ -65,7 +65,7 @@ class RemoveOutliers(PipeBase):
 
             return True
 
-        return Data({"df": df[df.apply(keep_observation, axis=1)]})
+        return {"df": df[df.apply(keep_observation, axis=1)]}
 
 
 class ReplaceOutliersFeature(PipeBase):
@@ -168,7 +168,7 @@ class ReplaceOutliersFeature(PipeBase):
         for column in df.columns:
             df.loc[:, column] = df[column].apply(self._replace_outlier, column=column)
 
-        return Data({"df": df})
+        return {"df": df}
 
     def transform_dask(self, data: Data, params: Params) -> Data:
         df = data["df"]
@@ -182,7 +182,7 @@ class ReplaceOutliersFeature(PipeBase):
 
         df = df.assign(**column_dfs)
 
-        return Data({"df": df})
+        return {"df": df}
 
     def _replace_outlier(self, x, column):
         try:  # check if x is actually a number

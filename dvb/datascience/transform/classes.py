@@ -76,10 +76,10 @@ class LabelBinarizerPipe(PipeBase):
                 )
             )
 
-        return Data({
+        return {
             "df": pd.concat(binarized_column_dfs, axis=1, join="outer"),
             "df_metadata": {k: lb.classes_ for k, lb in self.lb.items()},
-        })
+        }
 
     def transform_dask(self, data: Data, params: Params) -> Data:
         df = data["df"]
@@ -101,7 +101,7 @@ class LabelBinarizerPipe(PipeBase):
         ) for l in binarized_column_arrays], axis=0, join="outer")
         df.columns = columns
 
-        return Data({
+        return {
             "df": df,
             "df_metadata": {k: lb.classes_ for k, lb in self.lb.items()},
-        })
+        }

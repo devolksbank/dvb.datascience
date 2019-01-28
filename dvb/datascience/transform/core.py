@@ -44,7 +44,7 @@ class GetCoreFeatures(ClassificationPipeBase):
         if self.core_features is None:
             raise ValueError("The fit method has not run.")
 
-        return Data({"features": self.core_features})
+        return {"features": self.core_features}
 
     def get_core_features(self, X, y) -> List[str]:
         if self.method == "SFS":

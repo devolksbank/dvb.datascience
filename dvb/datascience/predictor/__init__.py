@@ -9,7 +9,8 @@ import sklearn.metrics
 import ipywidgets
 from typing import Tuple
 
-from ..classification_pipe_base import ClassificationPipeBase, Data, Params
+from ..classification_pipe_base import ClassificationPipeBase
+from ..pipe_base import Data, Params
 
 
 class SklearnClassifier(ClassificationPipeBase):

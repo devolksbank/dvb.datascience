@@ -188,7 +188,7 @@ class CategoricalImpute(PipeBase):
             mask = self._get_mask(df[column], self.missing_values)
             df[column][mask] = self.fill[column]
 
-        return Data({"df": df})
+        return {"df": df}
 
     def transform_dask(self, data: Data, params: Params) -> Data:
         """
@@ -201,4 +201,4 @@ class CategoricalImpute(PipeBase):
             mask = self._get_mask(df[column], self.missing_values)
             df[column][mask] = self.fill[column]
 
-        return Data({"df": df})
+        return {"df": df}

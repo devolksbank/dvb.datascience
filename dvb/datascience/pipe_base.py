@@ -95,7 +95,7 @@ class PipeBase(metaclass=abc.ABCMeta):
         The output will be collected and shown to the user.
         """
         # Default/fallback: convert pandas to dask
-        d = Data({})
+        d = {}
 
         for key, df in self.transform_pandas(data, params).items():
             if type(df) in (pd.DataFrame, pd.Series):
