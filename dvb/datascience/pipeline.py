@@ -648,7 +648,7 @@ class Pipeline:
 
         return
 
-    def load(self, file_path: str) -> None:
+    def load(self, file_path: Union[pathlib.Path, str]) -> None:
         """
         Load the fitted parameters from the file in `file_path` and load them in all Pipes.
         """
@@ -657,7 +657,7 @@ class Pipeline:
             for pipe_name, pipe in self.pipes.items():
                 pipe.load(state.get(pipe_name, {}))
 
-    def save(self, file_path: str) -> None:
+    def save(self, file_path: Union[pathlib.Path, str]) -> None:
         """
         Save the fitted parameters from alle Pipes to the file in `file_path`.
         """
