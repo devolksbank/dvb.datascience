@@ -154,6 +154,7 @@ class Pipeline:
         self,
         output_store: Optional[OutputStoreBase] = None,
         dataframe_engine: str = None,
+        draw_pipeline: bool = True,
     ) -> None:
         logger.info("Initiate pipeline")
         if output_store is None:
@@ -171,6 +172,8 @@ class Pipeline:
         """A mapping between an input pipe name and related connection tuples (output_name, output_key, input_name, input_key)"""
         self.output_connectors: Dict[Optional[str], List]  = defaultdict(list)
         """A mapping between an output pipe name and related connection tuples (output_name, output_key, input_name, input_key)"""
+
+        self.draw_pipeline = draw_pipeline
 
         # Input containing nodes/edge definitions for blockdiag
         self.diagram_definition = ""
@@ -357,6 +360,9 @@ class Pipeline:
         """
         Returns an image with all pipes and connectors.
         """
+        if not self.draw_pipeline:
+            return
+
         display("Drawing diagram using blockdiag")
 
         block_diag_print = (
@@ -648,7 +654,7 @@ class Pipeline:
 
         return
 
-    def load(self, file_path: Union[pathlib.Path, str]) -> None:
+    def load(self, file_path: str) -> None:
         """
         Load the fitted parameters from the file in `file_path` and load them in all Pipes.
         """
@@ -657,7 +663,7 @@ class Pipeline:
             for pipe_name, pipe in self.pipes.items():
                 pipe.load(state.get(pipe_name, {}))
 
-    def save(self, file_path: Union[pathlib.Path, str]) -> None:
+    def save(self, file_path: str) -> None:
         """
         Save the fitted parameters from alle Pipes to the file in `file_path`.
         """

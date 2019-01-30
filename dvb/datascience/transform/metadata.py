@@ -28,49 +28,46 @@ class MetadataPipeline(SubPipelineBase):
         rows = [
             row
             for row in self.metadata.vars.values()
-            if row['nameVar'] not in self.remove_vars
+            if row['varName'] not in self.remove_vars
         ]
 
         union_input = []
 
         for idx, row in enumerate(rows):
-            if idx == 10:  # TODO: Remove
-                break
-
             self.sub_pipeline.addPipe(
-                "filter_" + row['nameVar'], FilterFeatures([row['nameVar']]),
+                "filter_" + row['varName'], FilterFeatures([row['varName']]),
                 [("pass_data", "df", "df")]
             )
 
             if row['varType'] == "numi" and row['impMethod'] in ["mean", "median"]:
                 self.sub_pipeline.addPipe(
-                    "impute_" + row['nameVar'], ImputeWithDummy(strategy=row['impMethod']),
-                    [("filter_" + row['nameVar'], "df", "df")]
+                    "impute_" + row['varName'], ImputeWithDummy(strategy=row['impMethod']),
+                    [("filter_" + row['varName'], "df", "df")]
                 )
-                union_input.append(("impute_" + row['nameVar'], idx))
+                union_input.append(("impute_" + row['varName'], idx))
 
             elif row['varType'] == "cat" and row['impMethod'] == "mode":
                 self.sub_pipeline.addPipe(
-                    "impute_" + row['nameVar'],
+                    "impute_" + row['varName'],
                     CategoricalImpute(),
-                    [("filter_" + row['nameVar'], "df", "df")]
+                    [("filter_" + row['varName'], "df", "df")]
                 )
                 self.sub_pipeline.addPipe(
-                    "labelbinarizer_" + row['nameVar'],
+                    "labelbinarizer_" + row['varName'],
                     LabelBinarizerPipe(),
-                    [("impute_" + row['nameVar'], "df", "df")]
+                    [("impute_" + row['varName'], "df", "df")]
                 )
-                union_input.append(("labelbinarizer_" + row['nameVar'], idx))
+                union_input.append(("labelbinarizer_" + row['varName'], idx))
 
             elif row['varType'] == "cat":
                 self.sub_pipeline.addPipe(
-                    "labelbinarizer_" + row['nameVar'],
+                    "labelbinarizer_" + row['varName'],
                     LabelBinarizerPipe(),
-                    [("filter_" + row['nameVar'], "df", "df")]
+                    [("filter_" + row['varName'], "df", "df")]
                 )
-                union_input.append(("labelbinarizer_" + row['nameVar'], idx))
+                union_input.append(("labelbinarizer_" + row['varName'], idx))
             else:
-                union_input.append(("filter_" + row['nameVar'], idx))
+                union_input.append(("filter_" + row['varName'], idx))
 
         self.sub_pipeline.addPipe(
             "union",

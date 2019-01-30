@@ -32,6 +32,7 @@ class SubPipelineBase(PipeBase):
     def setPipeline(self, pipeline):
         self.pipeline = pipeline
         self.sub_pipeline.dataframe_engine = pipeline.dataframe_engine
+        self.sub_pipeline.draw_pipeline= pipeline.draw_pipeline
 
     def fit_transform(
         self, data: Data, transform_params: Params, fit_params: Params

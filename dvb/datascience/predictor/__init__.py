@@ -11,6 +11,7 @@ from typing import Tuple
 
 from ..classification_pipe_base import ClassificationPipeBase
 from ..pipe_base import Data, Params
+from ..pipeline import default_dataframe_engine
 
 
 class SklearnClassifier(ClassificationPipeBase):
@@ -218,6 +219,8 @@ import tpot
 
 class TPOTClassifier(SklearnClassifier):
     def __init__(self, **kwargs):
+        kwargs['use_dask'] = default_dataframe_engine == 'dask'
+
         self.clf = tpot.TPOTClassifier(**kwargs)
         self.cv_clf = None
 

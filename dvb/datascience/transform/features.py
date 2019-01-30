@@ -128,6 +128,13 @@ class FilterFeatures(SpecifyFeaturesBase):
 
         return {"df": df[features]}
 
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        df = data["df"]
+        features: List[str] = [] if self.features is None else [
+            i for i in self.features if i in df.columns
+        ]
+
+        return {"df": df[features]}
 
 class FilterTypeFeatures(PipeBase):
     """

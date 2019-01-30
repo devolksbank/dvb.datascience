@@ -3,6 +3,7 @@
 ## 0.13 (unreleased)
 
 - Refactor storage of pipe outputs with optional saving them to file
+- Add Dask as dataframe engine, so tasks can be distributes among multiple cores and/or machines
 
 
 ## 0.12 (2018-09-19)

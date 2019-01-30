@@ -1,9 +1,6 @@
-import pathlib
-from typing import Union
-
 import pandas as pd
 
-from ..pipe_base import Data, Params, PipeBase
+from ..pipe_base import PipeBase, Data, Params
 
 
 class ExcelDataImportPipe(PipeBase):
@@ -23,14 +20,11 @@ class ExcelDataImportPipe(PipeBase):
     output_keys = ("df",)
 
     def __init__(
-        self,
-        file_path: Union[pathlib.Path, str, None] = None,
-        sheet_name=0,
-        index_col: str = None,
+        self, file_path: str = None, sheet_name=0, index_col: str = None
     ) -> None:
         super().__init__()
 
-        self.file_path: Union[pathlib.Path, str, None] = file_path
+        self.file_path = file_path
         self.sheet_name = sheet_name
         self.index_col = index_col
 

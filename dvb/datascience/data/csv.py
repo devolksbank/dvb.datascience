@@ -11,30 +11,34 @@ from ..pipe_base import Data, Params, PipeBase
 
 class MetaData:
     varTypes = {
-        "ind": np.bool,
+        "ind": np.int64,
         "numi": np.float64,
         "cat": np.str,
         "oms": np.str,
         "cd": np.str,
         "numc": np.float64,
+        "id": np.str,
     }
 
-    def __init__(self, file: Union[pathlib.Path, str]):
-        self.metadata = pd.read_csv(file, sep=None, engine="python")
+    def __init__(self, file: Union[pathlib.Path, str], **kwargs):
+        self.metadata = pd.read_csv(file, sep=None, engine="python", **kwargs)
         self.dtypes: Dict[str, Any] = {}
         for row in self.metadata.itertuples():
-            self.dtypes[row.nameVar] = self.varTypes[row.varType]
+            self.dtypes[row.varName] = self.varTypes[row.varType]
 
         self.vars: Dict[str, Dict[str, Any]] = {}
         for row in self.metadata.itertuples():
             d = {
-                "nameVar": row.nameVar,
+                "varName": row.varName,
                 "varType": row.varType,
                 "PREFIX": row.PREFIX,
                 "impMethod": row.impMethod,
+                "impValue": row.impValue,
                 "timing": row.timing,
+                "dummyForMissings": row.dummyForMissings,
+                "auxData": row.auxData,
             }
-            self.vars[row.nameVar] = d
+            self.vars[row.varName] = d
 
     def items(self):
         return self.metadata.items()
@@ -70,7 +74,7 @@ class CSVDataImportPipe(PipeBase):
         engine: str = "python",
         index_col: str = None,
         metadata: MetaData = None,
-        na_values: List = None,
+        **kwargs
     ) -> None:
         super().__init__()
         self.file_path = file_path
@@ -78,8 +82,8 @@ class CSVDataImportPipe(PipeBase):
         self.sep = sep
         self.engine = engine
         self.index_col = index_col
-        self.na_values = na_values
         self.metadata = metadata
+        self.kwargs = kwargs
 
     @property
     def dtypes(self):
@@ -99,6 +103,7 @@ class CSVDataImportPipe(PipeBase):
             dtype=self.dtypes,
             engine=params.get("engine") or self.engine,
             index_col=params.get("index_col") or self.index_col,
+            **self.kwargs
         ).sort_index(axis=1)
         return {"df": df}
 
@@ -112,10 +117,11 @@ class CSVDataImportPipe(PipeBase):
             sep=params.get("sep") or self.sep,
             dtype=self.dtypes,
             engine=params.get("engine") or self.engine,
+            **self.kwargs
         )
         index_col = params.get("index_col") or self.index_col
         if index_col is not None:
-            df.set_index().sort_index(axis=1)
+            df.set_index(self.index_col)
 
         return {"df": df}
 
@@ -152,6 +158,9 @@ class CSVDataExportPipe(PipeBase):
         return {}
 
     def transform_dask(self, data: Data, params: Params) -> Data:
+        if isinstance(data["df"], (pd.Series, pd.DataFrame)):
+            return self.transform_pandas(data, params)
+
         file_path = params.get("file_path") or self.file_path
         if isinstance(file_path, (str, pathlib.Path)) and not "*" in file_path:
             file_path = [file_path]

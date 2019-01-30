@@ -63,7 +63,7 @@ else:
 
         def _transform(self, params: Params, read_sql_query) -> Data:
             sql = params.get("sql", "")
-            if params.get("file_path"):
+            if params["file_path"]:
                 with open(params["file_path"], "r") as f:
                     sql = f.read()
 

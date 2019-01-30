@@ -52,12 +52,12 @@ class ImputeWithDummy(PipeBase):
             self._set_impute_value_train(df.mean())
 
         if self.strategy == "median":
-            print("Not Implemented in Dask. Use mean as fallback")
+            print("Not Implemented in Dask. Mean is used as fallback")
             self._set_impute_value_train(df.mean())
             # self._set_impute_value_train(df.median())
 
         if self.strategy == "mode":
-            print("Not Implemented in Dask. Use mean as fallback")
+            print("Not Implemented in Dask. Mean is used as fallback")
             self._set_impute_value_train(df.mean())
             # self._set_impute_value_train(df.mode().iloc[0])
 
@@ -134,7 +134,7 @@ class CategoricalImpute(PipeBase):
             or value is None
             or (isinstance(value, float) and np.isnan(value))
         ):
-            return pd.isnull(X)
+            return X.isnull()
         else:
             return X == value
 
@@ -169,7 +169,7 @@ class CategoricalImpute(PipeBase):
             mask = self._get_mask(X, self.missing_values)
             X = X[mask.__invert__()]  # unary ~ gives a pylint error
             if self.strategy == "mode":
-                replacement = X.value_counts().index[0]
+                replacement = X.value_counts().compute().index[0]
             elif self.strategy == "mean":
                 replacement = X.mean()
             elif self.strategy == "fixed_value":
@@ -199,6 +199,6 @@ class CategoricalImpute(PipeBase):
 
         for column in df.columns:
             mask = self._get_mask(df[column], self.missing_values)
-            df[column][mask] = self.fill[column]
+            df[column] = df[column].mask(mask, self.fill[column])
 
         return {"df": df}

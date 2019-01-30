@@ -77,7 +77,7 @@ class Union(PipeBase):
             if self.remove_duplicated_columns:
 
                 for df in data.values():
-                    df = df.copy()
+                    df = df
                     duplicated_feautures = found_column_names & set(df.columns)
                     df.drop(duplicated_feautures, axis=1)
                     found_column_names |= set(df.columns)
@@ -92,9 +92,12 @@ class Union(PipeBase):
                     return name
 
                 for df in data.values():
-                    dfs.append(df.rename(columns=check_name))
+                    new_names = {name: check_name(name) for name in df.columns}
+                    dfs.append(df.rename(columns=new_names).compute())
+                    # dfs.append(df.compute())
+
         else:
-            dfs = [df.copy() for df in data.values()]
+            dfs = [df for df in data.values()]
 
         if len(dfs) == 0:
             return {'df': data }
