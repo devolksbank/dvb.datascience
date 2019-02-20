@@ -49,7 +49,7 @@ setup(
     ],
     extras_require={
         "dev": ["zest.releaser[recommended]"],
-        "test": ["coverage", "pytest", "pytest-cov", "pexpect"],
+        "test": ["coverage", "pytest>=4.0", "pytest-cov", "pexpect"],
         "release": ["zest.releaser"],
         "teradata": ["teradata"],
         "docs": ["sphinx", "m2r", "nbsphinx", "jupyter_client", "nbconvert==5.3.1"],
