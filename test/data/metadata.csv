@@ -1,0 +1,4 @@
+varName,varType,PREFIX,impMethod,impValue,timing,dummyForMissings,auxData
+age,numi,bmas,median,normal,1
+length,numi,bmas,median,normal,1
+gender,id,hh,none,0,normal

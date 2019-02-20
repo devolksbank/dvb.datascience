@@ -41,7 +41,7 @@ class MetadataPipeline(SubPipelineBase):
             ]
         else:
             # all features as specified in metadata are used
-            rows = self.metadata.vars.values()
+            rows = list(self.metadata.vars.values())
 
         self._last_pipe_name = "pass_data"
 
@@ -51,7 +51,7 @@ class MetadataPipeline(SubPipelineBase):
             )
             self._last_pipe_name = name
 
-        for idx, row in enumerate(rows):
+        for row in rows:
             if row['impMethod'] == "none" and row['impValue'] != float("nan"):
                 concat_pipe(
                     "impute_" + row['varName'],

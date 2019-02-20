@@ -12,6 +12,7 @@ class TestTransform:
 
     train_csv = "test/data/train.csv"
     test_csv = "test/data/test.csv"
+    metadata_csv = "test/data/metadata.csv"
 
     @pytest.fixture()
     def pipeline(self):
@@ -341,3 +342,17 @@ class TestTransform:
         p.fit_transform()
         assert len(p.get_pipe_output("data")["df"]) == 150
         assert len(p.get_pipe_output("filter")["df"]) == 61
+
+    def test_metadata(self):
+        metadata = ds.data.MetaData(self.metadata_csv)
+        p = ds.Pipeline(draw_pipeline=False)
+        p.addPipe("read", ds.data.CSVDataImportPipe(self.train_csv, metadata=metadata))
+        p.addPipe(
+            "transform",
+            ds.transform.MetadataPipeline(metadata),
+            [("read", "df", "df")],
+        )
+
+        p.fit_transform()
+
+        assert set(p.get_pipe("transform").sub_pipeline.pipes.keys()) == {'impute_age', 'impute_gender','impute_length','pass_data'}
