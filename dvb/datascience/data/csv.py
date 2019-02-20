@@ -11,7 +11,7 @@ from ..pipe_base import Data, Params, PipeBase
 
 class MetaData:
     varTypes = {
-        "ind": np.int64,
+        "ind": np.int8,  # boolean like: -1 unknown, 0 FAlse, 1 True
         "numi": np.float64,
         "cat": np.str,
         "oms": np.str,
@@ -22,9 +22,9 @@ class MetaData:
 
     def __init__(self, file: Union[pathlib.Path, str], **kwargs):
         self.metadata = pd.read_csv(file, sep=None, engine="python", **kwargs)
-        self.dtypes: Dict[str, Any] = {}
+        self.all_dtypes: Dict[str, Any] = {}
         for row in self.metadata.itertuples():
-            self.dtypes[row.varName] = self.varTypes[row.varType]
+            self.all_dtypes[row.varName] = self.varTypes[row.varType]
 
         self.vars: Dict[str, Dict[str, Any]] = {}
         for row in self.metadata.itertuples():
@@ -42,6 +42,24 @@ class MetaData:
 
     def items(self):
         return self.metadata.items()
+
+    @property
+    def converters(self):
+        """Get all converters to be in pandas.read_csv(converters=converters)."""
+        def convert_bool(value):
+            if value in ('?', 'NaN', ''):
+                return -1
+            if value == 0 or value == '0':
+                return 0
+            return 1
+
+        return {k:convert_bool for k,v in self.all_dtypes.items() if v == np.int8}
+
+    @property
+    def dtypes(self):
+        """Get all dtypes which are not in convertors, so dtypes can be used as pandas.read_csv(dtypes=dtypes)."""
+        converters = self.converters
+        return {k:v for k,v in self.all_dtypes.items() if k not in converters}
 
 
 class CSVDataImportPipe(PipeBase):
@@ -92,6 +110,13 @@ class CSVDataImportPipe(PipeBase):
 
         return self.metadata.dtypes
 
+    @property
+    def converters(self):
+        if self.metadata is None:
+            return None
+
+        return self.metadata.converters
+
     def transform_pandas(self, data: Data, params: Params) -> Data:
         content = params.get("content") or self.content
         if content:
@@ -116,6 +141,7 @@ class CSVDataImportPipe(PipeBase):
             content or file_path,
             sep=params.get("sep") or self.sep,
             dtype=self.dtypes,
+            converters=self.converters,
             engine=params.get("engine") or self.engine,
             **self.kwargs
         )
@@ -152,7 +178,7 @@ class CSVDataExportPipe(PipeBase):
     def transform_pandas(self, data: Data, params: Params) -> Data:
         data["df"].to_csv(
             params.get("file_path") or self.file_path,
-            sep=params.get("sep") or self.sep,
+            sep=params.get("sep", self.sep),
             **self.kwargs
         )
         return {}
@@ -165,5 +191,5 @@ class CSVDataExportPipe(PipeBase):
         if isinstance(file_path, (str, pathlib.Path)) and not "*" in file_path:
             file_path = [file_path]
 
-        data["df"].to_csv(file_path, sep=params.get("sep") or self.sep, **self.kwargs)
+        data["df"].to_csv(file_path, sep=params.get("sep", self.sep), **self.kwargs)
         return {}

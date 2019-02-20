@@ -93,8 +93,7 @@ class Union(PipeBase):
 
                 for df in data.values():
                     new_names = {name: check_name(name) for name in df.columns}
-                    dfs.append(df.rename(columns=new_names).compute())
-                    # dfs.append(df.compute())
+                    dfs.append(df.rename(columns=new_names))
 
         else:
             dfs = [df for df in data.values()]

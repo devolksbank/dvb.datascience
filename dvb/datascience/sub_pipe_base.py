@@ -29,6 +29,9 @@ class SubPipelineBase(PipeBase):
         self.output_pipe_name = output_pipe_name
         self.data_from_pipeline: Optional[Data] = None
 
+    def setOutputPipeName(self, name):
+        self.output_pipe_name = name
+
     def setPipeline(self, pipeline):
         self.pipeline = pipeline
         self.sub_pipeline.dataframe_engine = pipeline.dataframe_engine

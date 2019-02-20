@@ -90,8 +90,10 @@ class TestCsv:
         # Inspect the file on disk
         with open(output_file, "r") as content_file:
             content = content_file.read().split('\n')
-            assert set(content[0].split(',')) == set(["", "age", "gender", "length", "name"])
-            assert set(content[1].split(',')) == set(["0", "25", "W", "161", "gea"])
+            content = [i for i in content if i]  # remove empty lines
+
+        assert set(content[0].split(',')) == set(["", "age", "gender", "length", "name"])
+        assert set(content[1].split(',')) == set(["0", "25", "W", "161", "gea"])
 
     def test_write_init_params(self):
         pass

@@ -596,6 +596,7 @@ class Pipeline:
                 if fit:
                     # fit_and_transform
                     logger.info("fit pipe %s", pipe.name)
+                    print
                     output = pipe.fit_transform(
                         data=pipe_input,
                         fit_params=pipe_fit_params,

@@ -3,6 +3,7 @@ import abc
 
 import pandas as pd
 import numpy as np
+import dask.dataframe as dd
 from IPython.core.display import display
 from sklearn import model_selection
 import sklearn.metrics
@@ -32,9 +33,13 @@ class SklearnClassifier(ClassificationPipeBase):
         self.clf = clf(**kwargs)
 
     def fit(self, data: Data, params: Params):
-        self._set_classification_labels(data["df"], data["df_metadata"])
-        X = data["df"][self.X_labels]
-        y_true = data["df"][self.y_true_label]
+        df = data["df"]
+        if isinstance(df, (dd.DataFrame, dd.Series)):
+            df = df.compute()
+
+        self._set_classification_labels(df, data["df_metadata"])
+        X = df[self.X_labels]
+        y_true = df[self.y_true_label]
 
         self.clf.fit(X, y_true)
 

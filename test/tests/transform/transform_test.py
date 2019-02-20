@@ -54,11 +54,15 @@ class TestTransform:
             [("df1", "df", "df1"), ("df2", "df", "df1")],
         )
         p.fit_transform()
-        assert set(p.get_pipe_output("merge_1")["df"].columns) == \
-            set(["col_1", "col_2", "col_3", "col_1_"])
-        assert set(p.get_pipe_output("merge_2")["df"].columns) == \
-            set(["col_1", "col_2", "col_3"])
-        assert set(p.get_pipe_output("merge_3")["df"].columns) == set(["col_1", "col_2"])
+        assert set(p.get_pipe_output("merge_1")["df"].columns) == set(
+            ["col_1", "col_2", "col_3", "col_1_"]
+        )
+        assert set(p.get_pipe_output("merge_2")["df"].columns) == set(
+            ["col_1", "col_2", "col_3"]
+        )
+        assert set(p.get_pipe_output("merge_3")["df"].columns) == set(
+            ["col_1", "col_2"]
+        )
 
     def test_label_binarizer(self):
         p = ds.Pipeline()
@@ -73,12 +77,14 @@ class TestTransform:
         )
 
         p.fit_transform()
-        assert set(p.get_pipe_output("label_binarizer")["df_metadata"]["target"]) == \
-            set([0, 1, 2])
+        assert set(
+            p.get_pipe_output("label_binarizer")["df_metadata"]["target"]
+        ) == set(["target_0", "target_1", "target_2"])
 
         p.transform()
-        assert set(p.get_pipe_output("label_binarizer")["df"].columns) == \
-            set(["target_0", "target_1", "target_2"])
+        assert set(p.get_pipe_output("label_binarizer")["df"].columns) == set(
+            ["target", "target_0", "target_1", "target_2"]
+        )
 
     def test_categorical_impute(self):
         data = pd.DataFrame(
@@ -101,7 +107,7 @@ class TestTransform:
         p.addPipe(
             "impute",
             ds.transform.CategoricalImpute(
-                missing_values="", strategy="fixed_value", replacement="?"
+                missing_values="", strategy="value", replacement="?"
             ),
             [("data", "df", "df")],
         )
@@ -219,12 +225,14 @@ class TestTransform:
         p.addPipe("drop", ds.transform.DropFeatures("age"), [("read", "df", "df")])
 
         p.fit_transform(transform_params={"read": {"file_path": self.train_csv}})
-        assert set(p.get_pipe_output("drop")["df"].columns) == \
-            set(["name", "gender", "length"])
+        assert set(p.get_pipe_output("drop")["df"].columns) == set(
+            ["name", "gender", "length"]
+        )
 
         p.transform(transform_params={"read": {"file_path": self.test_csv}})
-        assert set(p.get_pipe_output("drop")["df"].columns) == \
-            set(["name", "gender", "length"])
+        assert set(p.get_pipe_output("drop")["df"].columns) == set(
+            ["name", "gender", "length"]
+        )
 
     def test_filter_features(self, pipeline):
         p = pipeline
@@ -296,14 +304,30 @@ class TestTransform:
                 "split": {"split": ds.transform.RandomTrainTestSplit.TRAIN}
             }
         )
-        assert round(abs(p.get_pipe_output("sklearn")["df"]["sepal length (cm)"].std()-1.00), 2) == 0
+        assert (
+            round(
+                abs(
+                    p.get_pipe_output("sklearn")["df"]["sepal length (cm)"].std() - 1.00
+                ),
+                2,
+            )
+            == 0
+        )
 
         p.transform(
             transform_params={
                 "split": {"split": ds.transform.RandomTrainTestSplit.TEST}
             }
         )
-        assert round(abs(p.get_pipe_output("sklearn")["df"]["sepal length (cm)"].std()-0.99), 2) == 0
+        assert (
+            round(
+                abs(
+                    p.get_pipe_output("sklearn")["df"]["sepal length (cm)"].std() - 0.99
+                ),
+                2,
+            )
+            == 0
+        )
 
     def test_filter(self):
         p = ds.Pipeline()

@@ -1,7 +1,7 @@
 import logging
-
-from typing import List, Dict, Tuple
 from pandas.api.types import is_numeric_dtype
+from typing import List, Dict, Tuple
+
 from ..pipe_base import PipeBase, Data, Params
 
 logger = logging.getLogger(__name__)
@@ -106,9 +106,9 @@ class ReplaceOutliersFeature(PipeBase):
         self.method = method
         self.nr_of_std = nr_of_std
 
-        self.features_limit: Dict[str,Tuple] = {}
-        self.features_mean: Dict[str,float] = {}
-        self.features_median: Dict[str,float] = {}
+        self.features_limit: Dict[str, Tuple] = {}
+        self.features_mean: Dict[str, float] = {}
+        self.features_median: Dict[str, float] = {}
 
     def fit_pandas(self, data: Data, params: Params):
         df = data["df"]
@@ -166,7 +166,9 @@ class ReplaceOutliersFeature(PipeBase):
         df = data["df"].copy()
 
         for column in df.columns:
-            df.loc[:, column] = df[column].apply(self._replace_outlier, column=column)
+            df.loc[:, column] = df[column].apply(
+                self._replace_outlier, column=column
+            )
 
         return {"df": df}
 
@@ -176,11 +178,8 @@ class ReplaceOutliersFeature(PipeBase):
         if self.method == "median":
             raise NotImplementedError("Dask does not support median")
 
-        column_dfs = {}
         for column in df.columns:
-            column_dfs[column] = df[column].apply(self._replace_outlier, column=column)
-
-        df = df.assign(**column_dfs)
+            df[column] = df[column].apply(self._replace_outlier, column=column)
 
         return {"df": df}
 
@@ -199,9 +198,8 @@ class ReplaceOutliersFeature(PipeBase):
         if self.method == "median":
             return self.features_median[column]
 
-        if (
-            self.method == "clip"
-        ):  # if value is lower/higher than nearest acceptable change it to nearest acceptable
+        if self.method == "clip":
+            # if value is lower/higher than nearest acceptable change it to nearest acceptable
             if x < self.features_limit[column][0]:
                 return self.features_limit[column][0]
 
