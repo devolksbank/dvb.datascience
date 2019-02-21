@@ -353,7 +353,17 @@ class TestTransform:
                 ["marie", 21, 1, 164],
                 ["piet", 23, 0, 194],
                 ["helen", 24, 1, 177],
-                ["jan", 60, 0, 188],
+                ["jan", 63, 0, 188],
+                ["jan", 21, 0, 180],
+                ["marie", 24, 1, 164],
+                ["piet", 25, 0, 194],
+                ["helen", 26, 1, 177],
+                ["jan", 65, 0, 188],
+                ["jan", 23, 0, 180],
+                ["marie", 22, 1, 164],
+                ["piet", 29, 0, 194],
+                ["helen", 14, 1, 177],
+                ["jan", 62, 0, 188],
             ],
             columns=["name", "age", "gender", "length"],
         ).sort_index(axis=1)
@@ -370,7 +380,7 @@ class TestTransform:
         )
 
         p.fit_transform()
-        assert p.get_pipe_output("smote")["df"].shape == (5,2)
+        assert p.get_pipe_output("smote")["df"].shape == (18,3)
 
 
     def test_metadata(self):
