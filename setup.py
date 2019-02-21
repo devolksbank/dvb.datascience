@@ -43,6 +43,7 @@ setup(
         "blockdiag",
         "pyensae",
         "TPOT",
+        "xlrd",
         # TODO: make dask optional
         "dask[array, bag, dataframe, distributed, delayed]",
         "dask_ml",

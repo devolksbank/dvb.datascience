@@ -29,6 +29,7 @@ class TestCsv:
         return train_data
 
     file_path = "test/data/train.csv"
+    excel_file_path = "test/data/train.xlsx"
 
     @property
     def content(self):
@@ -38,6 +39,15 @@ class TestCsv:
     def test_read_file(self):
         p = ds.Pipeline()
         p.addPipe("read", ds.data.CSVDataImportPipe(file_path=self.file_path))
+        p.transform()
+        df = p.get_pipe_output("read")["df"]
+        # make sure the order of the columns is correct
+        df = df[["age", "gender", "length", "name"]]
+        assert pd.DataFrame.equals(df, self.train_data)
+
+    def test_read_excel_file(self):
+        p = ds.Pipeline()
+        p.addPipe("read", ds.data.ExcelDataImportPipe(file_path=self.excel_file_path))
         p.transform()
         df = p.get_pipe_output("read")["df"]
         # make sure the order of the columns is correct
