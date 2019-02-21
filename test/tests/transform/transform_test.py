@@ -343,6 +343,36 @@ class TestTransform:
         assert len(p.get_pipe_output("data")["df"]) == 150
         assert len(p.get_pipe_output("filter")["df"]) == 61
 
+    @pytest.mark.skip_dataframe_engine("dask")
+    def test_smote(self):
+        p = ds.Pipeline()
+
+        train_data = pd.DataFrame(
+            [
+                ["jan", 20, 0, 180],
+                ["marie", 21, 1, 164],
+                ["piet", 23, 0, 194],
+                ["helen", 24, 1, 177],
+                ["jan", 60, 0, 188],
+            ],
+            columns=["name", "age", "gender", "length"],
+        ).sort_index(axis=1)
+
+        p.addPipe("read", ds.data.DataPipe(key="df", data=train_data))
+        p.addPipe("metadata", ds.data.DataPipe(key="df_metadata", data={'classes': [0, 1], 'y_true_label': 'gender', 'X_labels': ['age', 'length']}))
+        p.addPipe(
+            "smote",
+            ds.transform.SMOTESampler(),
+            [
+                ("metadata", "df_metadata", "df_metadata"),
+                ("read", "df", "df"),
+            ],
+        )
+
+        p.fit_transform()
+        assert p.get_pipe_output("smote")["df"].shape == (5,2)
+
+
     def test_metadata(self):
         metadata = ds.data.MetaData(self.metadata_csv)
         p = ds.Pipeline(draw_pipeline=False)
