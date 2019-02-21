@@ -139,7 +139,7 @@ The unittests for the project can be run using [pytest](https://pytest.org/):
 pytest
 ```
 
-All tests are run with both the Pandas and Dask engine.
+All tests are executed with both the Pandas and Dask engine.
 
 ### Code coverage
 
