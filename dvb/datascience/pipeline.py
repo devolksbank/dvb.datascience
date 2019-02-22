@@ -440,7 +440,7 @@ class Pipeline:
         d = {}
 
         for key, df in data.items():
-            if type(df) in (dd.DataFrame, dd.Series):
+            if isinstance(df, (pd.DataFrame, pd.Series)):
                 df = df.compute()
             d[key] = df
 
@@ -596,7 +596,6 @@ class Pipeline:
                 if fit:
                     # fit_and_transform
                     logger.info("fit pipe %s", pipe.name)
-                    print
                     output = pipe.fit_transform(
                         data=pipe_input,
                         fit_params=pipe_fit_params,

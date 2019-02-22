@@ -98,7 +98,7 @@ class PipeBase(metaclass=abc.ABCMeta):
         d = {}
 
         for key, df in self.transform_pandas(data, params).items():
-            if type(df) in (pd.DataFrame, pd.Series):
+            if isinstance(df, (pd.DataFrame, pd.Series)):
                 df = dd.from_pandas(
                     df, chunksize=1
                 ).compute()  # TO CHECK: is it wise to use compute here?

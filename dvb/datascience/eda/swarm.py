@@ -30,12 +30,6 @@ class SwarmPlots(PipeBase):
                     continue
                 fig = self.get_fig((1, feature, feature2))
                 sns.swarmplot(x=feature, y=feature2, data=df)
-                # plt.scatter(df[feature], df[feature2], label=params['metadata']['name'])
-                # plt.title('Scatterplot of %s and %s' % (feature, feature2))
-                # plt.legend()
-                # plt.margins(0.02)
-                # plt.xlabel(feature)
-                # plt.ylabel(feature2)
                 display(fig)
 
         return {"figs": self.figs}

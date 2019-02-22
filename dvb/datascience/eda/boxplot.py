@@ -78,10 +78,8 @@ class BoxPlot(PipeBase):
 
         box.set_linewidth(line_width)
         box.set_facecolor([1, 1, 1, 1])
-        # box.set_edgecolor(color)
         box.set_zorder(2)
 
-        # v.set_color(color)
         v.set_linewidth(line_width)
         v.set_zorder(1)
 
@@ -95,16 +93,13 @@ class BoxPlot(PipeBase):
 
         for wt in whisker_tips:
             wt.set_markeredgewidth(line_width)
-            # wt.set_color(color)
             wt.set_markersize(whisker_size)
             wt.set_marker("_")
 
         g, = ax.plot(x, percentile_data[50], ls="")
         g.set_marker("_")
-        # g.set_markersize(median_size)
         g.set_zorder(20)
         g.set_markeredgewidth(line_width)
-        # g.set_markeredgecolor(color)
 
         return
 
@@ -117,7 +112,6 @@ class BoxPlot(PipeBase):
             fig = self.get_fig((params["metadata"]["name"], feature))
 
             self._plot_boxplot(self._describe_column(df[feature]))
-            # plt.boxplot([df[feature]])
 
             plt.title("Boxplot of %s" % feature)
             plt.margins(0.02)

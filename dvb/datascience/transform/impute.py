@@ -217,19 +217,3 @@ class CategoricalImpute(PipeBase):
             df[feature] = df[feature].apply(lambda value: self.fill[feature] if value in self.missing_values else value)
 
         return {"df": df}
-
-    # def transform_dask(self, data: Data, params: Params) -> Data:
-    #     """
-    #     Replaces missing values in the input data with the most frequent value
-    #     of the training data.
-    #     """
-    #     df = data["df"]
-    #
-    #     features = self.features or data["df"].columns
-    #     for feature in features:
-    #         df[feature] = df[feature].fillna(self.fill[feature])
-    #
-    #     if isinstance(df, (dd.Series, dd.DataFrame)):
-    #         df = df.compute()
-    #
-    #     return {"df": df}
