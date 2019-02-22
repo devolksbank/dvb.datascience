@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from IPython.core.display import HTML, display
 from pyensae.graphhelper import draw_diagram
 import dask.dataframe as dd
+import pandas as pd
 
 from .pipe_base import Data, Params, PipeBase
 
