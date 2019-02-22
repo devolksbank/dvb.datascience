@@ -1,7 +1,6 @@
-import abc
-from typing import Any, List, Mapping, Optional, Tuple, Callable
+from typing import Any, List, Mapping, Optional, Tuple, Callable, Union
 
-from .pipe_base import Data, Params, PipeBase
+from .pipe_base import PipeBase
 
 
 class ClassificationPipeBase(PipeBase):
@@ -10,25 +9,32 @@ class ClassificationPipeBase(PipeBase):
     methods are reusable for different kind of classification based pipes.
     """
 
-    classes = None  # type: List[str]
-    n_classes = 0
-    y_true_label = ""
-    y_pred_label = ""
-    y_pred_proba_labels = None  # type: List[str]
-    X_labels = None  # type: List[str]
-
-    fit_attributes = [
+    fit_attributes: List[
+        Tuple[str, Optional[Union[str, Callable]], Optional[Union[str, Callable]]]
+    ] = [
         ("classes", None, None),
         ("n_classes", None, None),
         ("y_true_label", None, None),
         ("y_pred_label", None, None),
         ("y_pred_proba_labels", None, None),
         ("X_labels", None, None),
-    ]  # type: List[Tuple[str, Optional[Union[str, Callable]], Optional[Union[str, Callable]]]]
+    ]
 
-    @abc.abstractmethod
-    def transform(self, data: Data, params: Params) -> Data:
-        pass
+    def __init__(self):
+        super().__init__()
+
+        self.classes: List[str] = None
+        self.n_classes: int = 0
+        self.y_true_label: str = ""
+        self.y_pred_label: str = ""
+        self.y_pred_proba_labels: List[str] = None
+        self.X_labels: List[str] = None
+
+        self.threshold: float = 0.5
+        self.y_true: Optional[List] = None
+        self.y_pred: List = None
+        self.y_pred_proba: Mapping = None
+        self.X: Any = None
 
     def _set_classification_labels(self, df, df_metadata):
         classes = df_metadata.get("classes")
@@ -52,17 +58,15 @@ class ClassificationPipeBase(PipeBase):
 
         self.threshold = df_metadata.get("threshold", 0.5)
 
-    threshold = None
-    y_true = None  # type: Optional[List]
-    y_pred = None  # type: List
-    y_pred_proba = None  # type: Mapping
-    X = None  # type: Any
-
     def _set_classification_data(self, df, df_metadata):
+        del df_metadata
+
         self.X = df[self.X_labels]
         self.y_true = None
+
         if self.y_true_label in df.columns:
             self.y_true = df[self.y_true_label]
+
         if self.y_pred_label in df.columns:
             self.y_pred = df[self.y_pred_label]
             self.y_pred_proba = df[self.y_pred_proba_labels]

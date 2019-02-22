@@ -21,7 +21,7 @@ class PandasWrapper(PipeBase):
 
         self.s = s
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
         new_df = self.s(df)
         return {"df": new_df}

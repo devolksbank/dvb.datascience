@@ -1,3 +1,6 @@
+from typing import Union
+import pathlib
+
 import numpy as np
 import pandas as pd
 from scipy.io import arff
@@ -19,16 +22,17 @@ class ARFFDataImportPipe(PipeBase):
     input_keys = ()
     output_keys = ("df",)
 
-    file_path = None
+    file_path: Union[pathlib.Path, str] = None
 
     fit_attributes = [("file_path", None, None)]
 
     def fit(self, data: Data, params: Params):
         self.file_path = params["file_path"]
 
-    def transform(self, data: Data, params: Params) -> Data:
-        arff_data = arff.loadarff(self.file_path)
-        return {"df": pd.DataFrame(arff_data[0])}
+    def transform_pandas(self, data: Data, params: Params) -> Data:
+        arff_data = arff.loadarff(self.file_path)[0]
+
+        return {"df": pd.DataFrame(arff_data)}
 
 
 class ARFFDataExportPipe(PipeBase):
@@ -45,20 +49,17 @@ class ARFFDataExportPipe(PipeBase):
     input_keys = ("df",)
     output_keys = ()
 
-    file_path = None
-    wekaname = None
+    file_path: Union[pathlib.Path, str] = None
+    wekaname: str = None
 
     fit_attributes = [("file_path", None, None), ("wekaname", None, None)]
 
     def fit(self, data: Data, params: Params):
-        self.file_path = params["file_path"]  # type: str
-        self.wekaname = params["wekaname"]  # type: str
+        self.file_path = params["file_path"]
+        self.wekaname = params["wekaname"]
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
-
-        if not isinstance(self.file_path, str):
-            raise ValueError("file_path is not a string")
 
         if not isinstance(self.wekaname, str):
             raise ValueError("wekaname is not a string")
@@ -69,7 +70,7 @@ class ARFFDataExportPipe(PipeBase):
             # look at each column's dtype. If it's an "object", make it "nominal" under Weka for now (can be changed in source for dates.. etc)
             for i in range(df.shape[1]):
                 if df.dtypes[i] == "O" or (
-                    df.columns[i] in ["Class", "CLASS", "class"]
+                        df.columns[i] in ["Class", "CLASS", "class"]
                 ):
                     _uniqueNominalVals = [str(_i) for _i in np.unique(df.iloc[:, i])]
                     _uniqueValuesString = "{%s}" % ",".join(_uniqueNominalVals).replace(
@@ -92,7 +93,7 @@ class ARFFDataExportPipe(PipeBase):
                         _instanceString += str(df.iloc[i, j])
 
                     if (
-                        j != df.shape[1] - 1
+                            j != df.shape[1] - 1
                     ):  # if it's not the last feature, add a comma
                         _instanceString += ","
                 _instanceString += "\n"

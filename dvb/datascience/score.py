@@ -1,6 +1,6 @@
 import itertools
 import logging
-from typing import List, Optional, Mapping
+from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -10,7 +10,8 @@ import tabulate
 from IPython.core.display import HTML, display
 from sklearn.preprocessing import label_binarize
 
-from .classification_pipe_base import ClassificationPipeBase, Data, Params
+from .classification_pipe_base import ClassificationPipeBase
+from .pipe_base import Data, Params
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ class ClassificationScore(ClassificationPipeBase):
     # methods which can be used when y_true is not present
     possible_predict_methods = ["plot_model_performance"]
 
-    params = None  # type: Params
+    params: Params = None
 
     def __init__(self, score_methods: List[str] = None) -> None:
         """
@@ -53,9 +54,6 @@ class ClassificationScore(ClassificationPipeBase):
 
     def transform(self, data: Data, params: Params) -> Data:
         self._set_classification_data(data["predict"], data["predict_metadata"])
-
-        # assert self.y_true.shape[0] == self.y_pred.shape[0]
-        # assert self.y_true.shape[0] == self.y_pred_proba.shape[0]
 
         self.params = (
             params

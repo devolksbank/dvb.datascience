@@ -22,24 +22,26 @@ class SKLearnWrapper(PipeBase):
     input_keys = ("df",)
     output_keys = ("df",)
 
-    s = None  # type: SKLearnBase
-
     fit_attributes = [("s", "pickle", "pickle")]
 
     def __init__(self, cls, **kwargs) -> None:
         super().__init__()
 
         self.cls = cls
+        self.s = self.cls(kwargs)
         self.kwargs = kwargs
 
-    def fit(self, data: Data, params: Params):
-        kwargs = {}
-        kwargs.update(self.kwargs)
-        kwargs.update(params.get("kwargs", {}))  # for grid search
-        self.s = self.cls(kwargs)
+    def fit_pandas(self, data: Data, params: Params):
+        if params.get("kwargs"):
+            # kwargs are added, so the cls has to be initialized again
+            kwargs = {}
+            kwargs.update(self.kwargs)
+            kwargs.update(params.get("kwargs", {}))
+            self.s = self.cls(kwargs)
+
         self.s.fit(data["df"])
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
         r = self.s.transform(df)
         return {"df": pd.DataFrame(r, columns=df.columns, index=df.index)}

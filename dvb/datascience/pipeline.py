@@ -13,11 +13,13 @@ import ipywidgets
 import matplotlib.pyplot as plt
 from IPython.core.display import HTML, display
 from pyensae.graphhelper import draw_diagram
+import dask.dataframe as dd
 
 from .pipe_base import Data, Params, PipeBase
 
 logger = logging.getLogger(__name__)
 
+default_dataframe_engine = 'pandas'
 
 class Status(Enum):
     NOT_STARTED = 1
@@ -148,27 +150,30 @@ class Pipeline:
     must be an instance of OutputStoreBase. At default, an OutputStoreMemory will be used.
     """
 
-    pipes = None  # type: Dict
-    input_connectors = None  # type: Dict[Optional[str], List]
-    output_connectors = None  # type: Dict[Optional[str], List]
-
-    current_transform_nr = -1  # type: int
-    transform_status = None  # type: Dict[int, Status]
-    output_store = None  # type: OutputStoreBase
-
     def __init__(
         self,
         output_store: Optional[OutputStoreBase] = None,
+        dataframe_engine: str = None,
+        draw_pipeline: bool = True,
     ) -> None:
         logger.info("Initiate pipeline")
         if output_store is None:
             output_store = OutputStoreMemory()
-        self.output_store = output_store
-        self.pipes = {}
-        self.input_connectors = defaultdict(list)
+        self.output_store: OutputStoreBase = output_store
+
+        if dataframe_engine is None:
+            dataframe_engine = default_dataframe_engine
+        if dataframe_engine not in ('pandas', 'dask'):
+            raise ValueError('dataframe engine %s is not supported' % dataframe_engine)
+        self.dataframe_engine = dataframe_engine
+
+        self.pipes: Dict[str, PipeBase] = {}
+        self.input_connectors: Dict[Optional[str], List] = defaultdict(list)
         """A mapping between an input pipe name and related connection tuples (output_name, output_key, input_name, input_key)"""
-        self.output_connectors = defaultdict(list)
+        self.output_connectors: Dict[Optional[str], List]  = defaultdict(list)
         """A mapping between an output pipe name and related connection tuples (output_name, output_key, input_name, input_key)"""
+
+        self.draw_pipeline = draw_pipeline
 
         # Input containing nodes/edge definitions for blockdiag
         self.diagram_definition = ""
@@ -237,9 +242,8 @@ class Pipeline:
                 "A pipe with name '" + name + "' is already present in ths pipeline"
             )
 
-        assert isinstance(pipe, PipeBase)
-
         pipe.name = name
+        pipe.setPipeline(self)
         self.pipes[name] = pipe
 
         if inputs:
@@ -331,7 +335,7 @@ class Pipeline:
         )
 
         # Use the more informational name when available
-        label = output_key if output_key is not None else ""  # type: str
+        label: str = output_key if output_key is not None else ""
         if input_key != output_key and input_key is not None:
             label += "-->" + input_key
 
@@ -356,6 +360,9 @@ class Pipeline:
         """
         Returns an image with all pipes and connectors.
         """
+        if not self.draw_pipeline:
+            return
+
         display("Drawing diagram using blockdiag")
 
         block_diag_print = (
@@ -425,6 +432,20 @@ class Pipeline:
 
         return r
 
+    @classmethod
+    def _compute_when_needed(cls, data: Data):
+        """
+        Data can contain lazy DataFrames. When a df is lazy, that one is computed.
+        """
+        d = {}
+
+        for key, df in data.items():
+            if isinstance(df, (pd.DataFrame, pd.Series)):
+                df = df.compute()
+            d[key] = df
+
+        return d
+
     def get_pipe_output(self, name: str, transform_nr: int = None) -> Dict:
         """
         Get the output of the pipe with `name` and the given `transform_nr` (which default to None
@@ -434,7 +455,9 @@ class Pipeline:
         if transform_nr is None:
             transform_nr = self.current_transform_nr
 
-        return self.output_store.load_pipe_output(name, self.current_transform_nr)
+        return self._compute_when_needed(
+                self.output_store.load_pipe_output(name, self.current_transform_nr)
+            )
 
     @staticmethod
     def get_params(params: Dict, key: str, metadata: Dict = None) -> Dict:

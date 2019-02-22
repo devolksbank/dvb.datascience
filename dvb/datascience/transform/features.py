@@ -4,19 +4,16 @@ import abc
 import numpy as np
 
 from ..pipe_base import Data, Params, PipeBase
+from ..data.csv import MetaData
 
 
 class FeaturesBase(PipeBase, abc.ABC):
     input_keys = ("df",)
     output_keys = ("df",)
 
-    features = None  # type: Optional[List[str]]
+    features: Optional[List[str]] = None
 
     fit_attributes = [("features", None, None)]
-
-    @abc.abstractmethod
-    def transform(self, data: Data, params: Params) -> Data:
-        pass
 
 
 class SpecifyFeaturesBase(FeaturesBase):
@@ -26,7 +23,7 @@ class SpecifyFeaturesBase(FeaturesBase):
     with the feautures during transform.
     """
 
-    features_function = None  # type: Optional[Callable]
+    features_function: Optional[Callable] = None
 
     def __init__(
         self, features: List[str] = None, features_function: Callable = None
@@ -40,13 +37,9 @@ class SpecifyFeaturesBase(FeaturesBase):
         else:
             self.features = features
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         if self.features_function is not None:
             self.features = self.features_function(data["df"])
-
-    @abc.abstractmethod
-    def transform(self, data: Data, params: Params) -> Data:
-        pass
 
 
 class DropFeaturesMixin(FeaturesBase):
@@ -55,12 +48,10 @@ class DropFeaturesMixin(FeaturesBase):
     set self.features, which contains the features which will be dropped.
     """
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         del params
 
-        df = data["df"].copy()
-
-        return {"df": df.drop(self.features, axis=1, errors="ignore")}
+        return {"df": data["df"].drop(self.features, axis=1, errors="ignore")}
 
 
 class DropNonInvertibleFeatures(DropFeaturesMixin, FeaturesBase):
@@ -68,7 +59,7 @@ class DropNonInvertibleFeatures(DropFeaturesMixin, FeaturesBase):
     Drops features that are not invertible, to prevent singularity.
     """
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         self.features = []
         df = data["df"]
 
@@ -82,7 +73,6 @@ class DropNonInvertibleFeatures(DropFeaturesMixin, FeaturesBase):
 
 
 class DropFeatures(DropFeaturesMixin, SpecifyFeaturesBase):
-
     pass
 
 
@@ -100,7 +90,7 @@ class DropHighlyCorrelatedFeatures(DropFeaturesMixin, FeaturesBase):
         self.features = []
         self.absolute = absolute
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         df = data["df"]
         corr_matrix = df.corr()
         if self.absolute:
@@ -129,16 +119,22 @@ class FilterFeatures(SpecifyFeaturesBase):
     input_keys = ("df",)
     output_keys = ("df",)
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
 
-        if self.features is None:
-            features = []  # type: List[str]
-        else:
-            features = [i for i in self.features if i in df.columns]
+        features: List[str] = [] if self.features is None else [
+            i for i in self.features if i in df.columns
+        ]
 
         return {"df": df[features]}
 
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        df = data["df"]
+        features: List[str] = [] if self.features is None else [
+            i for i in self.features if i in df.columns
+        ]
+
+        return {"df": df[features]}
 
 class FilterTypeFeatures(PipeBase):
     """
@@ -153,7 +149,7 @@ class FilterTypeFeatures(PipeBase):
 
         self.type_ = type_
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
 
         features = [
@@ -161,6 +157,23 @@ class FilterTypeFeatures(PipeBase):
         ]
 
         return {"df": df[features]}
+
+
+class MetadataFilter(FilterFeatures):
+
+    input_keys = ("df", "metadata_df")
+    output_keys = ("df",)
+
+    def __init__(self, c: Callable, metadata: MetaData):
+        """
+        Filter the columns based on metadata
+
+        :param c: a callable which accept a dict with the metadata of a column and return True when the column must be kept
+        """
+        super().__init__()
+
+        self.c = c
+        self.features = [k for k, v in metadata.items() if c(v)]
 
 
 class ComputeFeature(PipeBase):
@@ -185,8 +198,16 @@ class ComputeFeature(PipeBase):
         self.f = f
         self.c = c
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"].copy()
+
+        if self.c is None or self.c(df):
+            df[self.column_name] = df.apply(self.f, axis=1)
+
+        return {"df": df}
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        df = data["df"]
 
         if self.c is None or self.c(df):
             df[self.column_name] = df.apply(self.f, axis=1)

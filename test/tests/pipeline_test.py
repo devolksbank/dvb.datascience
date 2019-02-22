@@ -22,19 +22,19 @@ class TestPipes(unittest.TestCase):
             "split", ds.transform.RandomTrainTestSplit(test_size=0.3), [("data", "df", "df")]
         )
 
-        self.assertEqual(len(p.pipes), 2)
+        assert len(p.pipes) == 2
 
     def testIsPipeInputForAnotherPipe(self):
         p = ds.Pipeline()
         p.addPipe("data", ds.data.SampleData("iris"))
-        self.assertFalse(p._is_pipe_input_for_another_pipe(p.get_pipe("data")))
+        assert not p._is_pipe_input_for_another_pipe(p.get_pipe("data"))
         p.addPipe(
             "split",
             ds.transform.RandomTrainTestSplit(test_size=0.3),
             [("data", "df", "df")],
         )
-        self.assertFalse(p._is_pipe_input_for_another_pipe(p.get_pipe("split")))
-        self.assertTrue(p._is_pipe_input_for_another_pipe(p.get_pipe("data")))
+        assert not p._is_pipe_input_for_another_pipe(p.get_pipe("split"))
+        assert p._is_pipe_input_for_another_pipe(p.get_pipe("data"))
 
     def testPipeline(self):
         p = ds.Pipeline()
@@ -48,14 +48,14 @@ class TestPipes(unittest.TestCase):
                 "split": {"split": ds.transform.RandomTrainTestSplit.TRAIN}
             }
         )
-        self.assertEqual(len(p.get_pipe_output("split")["df"]), 105)
+        assert len(p.get_pipe_output("split")["df"]) == 105
 
         p.transform(
             transform_params={
                 "split": {"split": ds.transform.RandomTrainTestSplit.TEST}
             }
         )
-        self.assertEqual(len(p.get_pipe_output("split")["df"]), 45)
+        assert len(p.get_pipe_output("split")["df"]) == 45
 
     def testPipelineOutputToFile(self):
         p = ds.Pipeline(output_store=ds.OutputStoreFile())
@@ -69,14 +69,14 @@ class TestPipes(unittest.TestCase):
                 "split": {"split": ds.transform.RandomTrainTestSplit.TRAIN}
             }
         )
-        self.assertEqual(len(p.get_pipe_output("split")["df"]), 105)
+        assert len(p.get_pipe_output("split")["df"]) == 105
 
         p.transform(
             transform_params={
                 "split": {"split": ds.transform.RandomTrainTestSplit.TEST}
             }
         )
-        self.assertEqual(len(p.get_pipe_output("split")["df"]), 45)
+        assert len(p.get_pipe_output("split")["df"]) == 45
 
     def testSaveLoadPipeline(self):
         p = ds.Pipeline()
@@ -91,24 +91,22 @@ class TestPipes(unittest.TestCase):
         )
 
         p.fit_transform(transform_params={"read": {"file_path": "test/data/train.csv"}})
-        self.assertEqual(p.get_pipe_output("outliers")["df"].iloc[4]["age"], 23)
+        assert p.get_pipe_output("outliers")["df"].iloc[4]["age"] == 23
 
         p.transform(transform_params={"read": {"file_path": "test/data/test.csv"}})
-        self.assertEqual(p.get_pipe_output("outliers")["df"].iloc[1]["age"], 23)
+        assert p.get_pipe_output("outliers")["df"].iloc[1]["age"] == 23
 
         file_path = os.path.join(self.test_dir, "export.json")
 
         p.save(file_path)
         with open(file_path) as f:
             state = json.load(f)
-            self.assertEqual(
-                ds.PipeBase._string_base64_pickle(state["outliers"]["features_median"]),
-                {"age": 23.0, "length": 180.0},
-            )
+            assert ds.PipeBase._string_base64_pickle(state["outliers"]["features_median"]) == \
+                {"age": 23.0, "length": 180.0}
 
         p.load(file_path)
         p.transform(transform_params={"read": {"file_path": "test/data/test.csv"}})
-        self.assertEqual(p.get_pipe_output("outliers")["df"].iloc[1]["age"], 23)
+        assert p.get_pipe_output("outliers")["df"].iloc[1]["age"] == 23
 
     def testSubPipeline(self):
         features = [
@@ -139,12 +137,12 @@ class TestPipes(unittest.TestCase):
                 connectorList = []
 
                 for idx, feature in enumerate(features):
-                    self.pipeline.addPipe(
+                    self.sub_pipeline.addPipe(
                         "filter_" + featuresSimplifiedNames[feature],
                         ds.transform.FilterFeatures([feature]),
                         [("pass_data", "df", "df")],
                     )
-                    self.pipeline.addPipe(
+                    self.sub_pipeline.addPipe(
                         "outlier_" + featuresSimplifiedNames[feature],
                         ds.transform.ReplaceOutliersFeature(),
                         [("filter_" + featuresSimplifiedNames[feature], "df", "df")],
@@ -157,28 +155,24 @@ class TestPipes(unittest.TestCase):
                         )
                     )
                 print(connectorList)
-                self.pipeline.addPipe("union", ds.transform.Union(4), connectorList)
+                self.sub_pipeline.addPipe("union", ds.transform.Union(4), connectorList)
 
         p.addPipe("sub", TestSubPipline(), [("data", "df", "df")])
 
         p.fit_transform()
-        self.assertEqual(
-            len(
-                p.get_pipe("sub").pipeline.get_pipe_output(
+        assert len(
+                p.get_pipe("sub").sub_pipeline.get_pipe_output(
                     "filter_" + featuresSimplifiedNames[features[0]]
                 )["df"]
-            ),
-            150,
-        )
-        self.assertEqual(len(p.get_pipe_output("sub")["df"]), 150)
+            ) == \
+            150
+        assert len(p.get_pipe_output("sub")["df"]) == 150
 
         p.transform()
-        self.assertEqual(
-            len(
-                p.get_pipe("sub").pipeline.get_pipe_output(
+        assert len(
+                p.get_pipe("sub").sub_pipeline.get_pipe_output(
                     "filter_" + featuresSimplifiedNames[features[0]]
                 )["df"]
-            ),
-            150,
-        )
-        self.assertEqual(len(p.get_pipe_output("sub")["df"]), 150)
+            ) == \
+            150
+        assert len(p.get_pipe_output("sub")["df"]) == 150

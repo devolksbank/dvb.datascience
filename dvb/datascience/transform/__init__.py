@@ -7,7 +7,7 @@ from .features import (
     DropHighlyCorrelatedFeatures,
 )
 from .impute import ImputeWithDummy, CategoricalImpute
-from .classes import LabelBinarizerPipe
+from .classes import LabelBinarizerPipe, LabelEncoderPipe
 from .outliers import ReplaceOutliersFeature, RemoveOutliers
 from .union import Union
 from .split import TrainTestSplit, RandomTrainTestSplit, CallableTrainTestSplit

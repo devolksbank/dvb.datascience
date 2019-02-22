@@ -28,7 +28,7 @@ class ExcelDataImportPipe(PipeBase):
         self.sheet_name = sheet_name
         self.index_col = index_col
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = pd.read_excel(
             params.get("file_path") or self.file_path,
             sheet_name=params.get("sheet_name") or self.sheet_name,

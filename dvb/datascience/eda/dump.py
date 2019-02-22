@@ -19,7 +19,11 @@ class Dump(AnalyticsBase):
     input_keys = ("df",)
     output_keys = ("output",)
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         with pd.option_context("display.max_rows", None, "display.max_columns", None):
             display(data["df"])
+
         return {"output": data["df"]}
+
+    def transform_dask(self, data, params):
+        raise NotImplementedError("A Dask Dataframe may be too large to print")

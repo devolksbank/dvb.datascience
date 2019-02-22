@@ -19,7 +19,7 @@ class ECDFPlots(PipeBase):
     input_keys = ("df",)
     output_keys = ("figs",)
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
 
         display(HTML("<h2>ECDF Plots Transform %s</h2>" % params["metadata"]["name"]))
@@ -40,6 +40,9 @@ class ECDFPlots(PipeBase):
             display(fig)
 
         return {"figs": self.figs}
+
+    def transform_dask(self, data, params):
+        raise NotImplementedError("A Dask dataframe may contain too much data to make an ECDF")
 
     @staticmethod
     def ecdf(data):

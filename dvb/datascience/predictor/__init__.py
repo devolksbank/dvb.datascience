@@ -1,15 +1,18 @@
-from typing import List, Optional, Mapping
+from typing import List, Optional, Mapping, Any
 import abc
 
 import pandas as pd
 import numpy as np
+import dask.dataframe as dd
 from IPython.core.display import display
 from sklearn import model_selection
 import sklearn.metrics
 import ipywidgets
 from typing import Tuple
 
-from ..classification_pipe_base import ClassificationPipeBase, Data, Params
+from ..classification_pipe_base import ClassificationPipeBase
+from ..pipe_base import Data, Params
+from ..pipeline import default_dataframe_engine
 
 
 class SklearnClassifier(ClassificationPipeBase):
@@ -17,8 +20,8 @@ class SklearnClassifier(ClassificationPipeBase):
     Wrapper for inclusion of sklearn classifiers in the pipeline.
     """
 
-    input_keys = ("df", "df_metadata")  # type: Tuple[str, ...]
-    output_keys = ("predict", "predict_metadata")  # type: Tuple[str, ...]
+    input_keys = ("df", "df_metadata")
+    output_keys = ("predict", "predict_metadata")
 
     threshold = None
 
@@ -30,9 +33,13 @@ class SklearnClassifier(ClassificationPipeBase):
         self.clf = clf(**kwargs)
 
     def fit(self, data: Data, params: Params):
-        self._set_classification_labels(data["df"], data["df_metadata"])
-        X = data["df"][self.X_labels]
-        y_true = data["df"][self.y_true_label]
+        df = data["df"]
+        if isinstance(df, (dd.DataFrame, dd.Series)):
+            df = df.compute()
+
+        self._set_classification_labels(df, data["df_metadata"])
+        X = df[self.X_labels]
+        y_true = df[self.y_true_label]
 
         self.clf.fit(X, y_true)
 
@@ -74,11 +81,11 @@ class ThresholdBase(abc.ABC):
     What does this do?
     """
 
-    y_true = None  # type: Optional[List]
-    y_pred_proba = None  # type: Mapping
-    y_pred_proba_labels = None  # type: List[str]
+    y_true: Optional[List] = None
+    y_pred_proba: Mapping = None
+    y_pred_proba_labels: List[str] = None
 
-    def set_y(self, y_true, y_pred_proba, y_pred_proba_labels, **kwargs):
+    def set_y(self, y_true, y_pred_proba, y_pred_proba_labels):
         self.y_true = y_true
         self.y_pred_proba = y_pred_proba
         self.y_pred_proba_labels = y_pred_proba_labels
@@ -217,7 +224,10 @@ import tpot
 
 class TPOTClassifier(SklearnClassifier):
     def __init__(self, **kwargs):
+        kwargs['use_dask'] = default_dataframe_engine == 'dask'
+
         self.clf = tpot.TPOTClassifier(**kwargs)
+        self.cv_clf = None
 
     def fit(self, data: Data, params: Params):
         super().fit(data, params)

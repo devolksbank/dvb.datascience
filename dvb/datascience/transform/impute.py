@@ -1,8 +1,9 @@
-
-from typing import Optional, Any
+import warnings
+from typing import Optional, Any, List
 
 import numpy as np
 import pandas as pd
+import dask.dataframe as dd
 
 from ..pipe_base import Data, Params, PipeBase
 
@@ -12,6 +13,7 @@ class ImputeWithDummy(PipeBase):
     Impute missing values with the mean, median, mode or set to a value.
     Takes as input strategy (str). Possible strategies are "mean", "median", "mode" and "value".
     If the strategy is "value", an extra argument impValueTrain can be given, denoting which value should be set.
+    Features can contain a list of feature names omn which the action will take place. At default all features are used.
     """
 
     input_keys = ("df",)
@@ -19,11 +21,13 @@ class ImputeWithDummy(PipeBase):
 
     possible_strategies = ["mean", "median", "mode", "value"]
 
-    impValueTrain = None  # type: Optional[Any]
+    impValueTrain: Optional[Any] = None
 
     fit_attributes = [("impValueTrain", "pickle", "pickle")]
 
-    def __init__(self, strategy: str = "median", impValueTrain=None) -> None:
+    def __init__(
+        self, features: List[str], strategy: str = "median", value=None
+    ) -> None:
         super().__init__()
 
         if strategy not in self.possible_strategies:
@@ -33,27 +37,53 @@ class ImputeWithDummy(PipeBase):
                 )
             )
 
+        if strategy == "median":
+            warnings.warn("Median is not Implemented in Dask. Mean is used as fallback")
+            strategy = "mean"
+
+        if strategy == "mode":
+            warnings.warn("Mode is not Implemented in Dask. Mean is used as fallback")
+            strategy = "mean"
+
         self.strategy = strategy
-        self.impValueTrain = impValueTrain
+        self.features = features
+        if isinstance(value, dict):
+            self.impValueTrain = value
+        else:
+            self.impValueTrain = {}
+            for feature in self.features:
+                self.impValueTrain[feature] = value
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         df = data["df"]
-        if self.strategy == "mean":
-            self._set_impute_value_train(df.mean())
+        for feature in self.features:
+            if self.strategy == "mean":
+                self.impValueTrain[feature] = df[feature].mean()
 
-        if self.strategy == "median":
-            self._set_impute_value_train(df.median())
+            if self.strategy == "median":
+                self.impValueTrain[feature] = df[feature].median()
 
-        if self.strategy == "mode":
-            self._set_impute_value_train(df.mode().iloc[0])
+            if self.strategy == "mode":
+                serie = df[feature]
+                if isinstance(serie, dd.Series, dd.DataFrame):
+                    mode = serie.value_counts().compute().index[0]
+                else:
+                    mode = serie.mode().iloc[0]
 
-    def transform(self, data: Data, params: Params) -> Data:
+                self.impValueTrain[feature] = mode
+
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
-        return {"df": df.fillna(self.impValueTrain)}
+        for feature in self.features:
+            df[feature] = df[feature].fillna(self.impValueTrain[feature])
 
-    def _set_impute_value_train(self, impValueTrain):
-        if self.impValueTrain is None:
-            self.impValueTrain = impValueTrain
+        return {"df": df}
+
+    # def transform_dask(self, data: Data, params: Params):
+    #     df = self.transform_pandas(data, params)["df"]
+    #     if isinstance(df, (dd.Series, dd.DataFrame)):
+    #         df = df.compute()
+    #     return {"df": df}
 
 
 class CategoricalImpute(PipeBase):
@@ -90,24 +120,31 @@ class CategoricalImpute(PipeBase):
 
     fit_attributes = [("fill", "pickle", "pickle")]
 
-    def __init__(self, missing_values="NaN", strategy="mode", replacement=""):
+    def __init__(
+        self,
+        missing_values=None,
+        strategy="mode",
+        replacement="",
+        features: List[str] = None,
+    ):
         super().__init__()
 
-        self.missing_values = missing_values
+        self.missing_values = missing_values if missing_values is not None else ["NaN"]
         self.replacement = replacement
         self.strategy = strategy
+        self.features = features
         self.fill = {}
 
-        strategies = ["fixed_value", "mode"]
+        strategies = ["value", "mode", "mean"]
         if self.strategy not in strategies:
             raise ValueError(
                 "Strategy {0} not in {1}".format(self.strategy, strategies)
             )
 
-        if self.strategy == "fixed_value" and self.replacement is None:
+        if self.strategy == "value" and self.replacement is None:
             raise ValueError(
                 "Please specify a value for 'replacement'"
-                "when using the fixed_value strategy."
+                "when using the value strategy."
             )
 
     @staticmethod
@@ -120,36 +157,63 @@ class CategoricalImpute(PipeBase):
             or value is None
             or (isinstance(value, float) and np.isnan(value))
         ):
-            return pd.isnull(X)
+            return X.isnull()
         else:
             return X == value
 
-    def fit(self, data: Data, params: Params):
+    def fit_pandas(self, data: Data, params: Params):
         """
         Get the most frequent value.
         """
-        for column in data["df"].columns:
-            X = data["df"][column]
-            mask = self._get_mask(X, self.missing_values)
-            X = X[mask.__invert__()]  # unary ~ gives a pylint error
+        features = self.features or data["df"].columns
+        for feature in features:
+            X = data["df"][feature]
             if self.strategy == "mode":
-                modes = pd.Series(X).mode()
-            elif self.strategy == "fixed_value":
-                modes = np.array([self.replacement])
-            if modes.shape[0] == 0:
-                raise ValueError("No value is repeated more than once in the column")
+                mode = pd.Series(X).mode(dropna=True)
+                if mode.shape[0] == 0:
+                    raise ValueError(
+                        "No value is repeated more than once in the column"
+                    )
+                replacement = mode[0]
+            elif self.strategy == "mean":
+                replacement = pd.Series(X).mean(skipna=True)
+            elif self.strategy == "value":
+                replacement = self.replacement
 
-            self.fill[column] = modes[0]
+            self.fill[feature] = replacement
 
-    def transform(self, data: Data, params: Params) -> Data:
+    @classmethod
+    def _compute_df(cls, df):
+        if isinstance(df, (dd.DataFrame, dd.Series)):
+            return df.compute()
+
+        return df
+
+    def fit_dask(self, data: Data, params: Params):
+        """
+        Get the most frequent value.
+        """
+        features = self.features or data["df"].columns
+        for feature in features:
+            X = data["df"][feature]
+            if self.strategy == "mode":
+                replacement = self._compute_df(X.value_counts()).index[0]
+            elif self.strategy == "mean":
+                replacement = X.mean(skipna=True)
+            elif self.strategy == "value":
+                replacement = self.replacement
+
+            self.fill[feature] = replacement
+
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         """
         Replaces missing values in the input data with the most frequent value
         of the training data.
         """
         df = data["df"].copy()
 
-        for column in df.columns:
-            mask = self._get_mask(df[column], self.missing_values)
-            df[column][mask] = self.fill[column]
+        features = self.features or data["df"].columns
+        for feature in features:
+            df[feature] = df[feature].apply(lambda value: self.fill[feature] if value in self.missing_values else value)
 
         return {"df": df}

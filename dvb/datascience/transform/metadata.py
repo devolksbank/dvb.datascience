@@ -1,13 +1,13 @@
 from typing import List
 
-import pandas as pd
-
+from ..data import MetaData
 from ..sub_pipe_base import SubPipelineBase
 from ..transform import (
     CategoricalImpute,
     FilterFeatures,
     ImputeWithDummy,
     LabelBinarizerPipe,
+    LabelEncoderPipe,
     Union,
 )
 
@@ -17,65 +17,69 @@ class MetadataPipeline(SubPipelineBase):
     Read metadata and make some pipes for processing the data
     """
 
-    input_keys = ("df",)
+    input_keys = ('df',)
     output_keys = ("df",)
 
-    def __init__(self, file_path: str, remove_vars: List = None) -> None:
-        super().__init__("union")
+    def __init__(self, metadata: MetaData, remove_features: List = None, keep_features: List = None) -> None:
+        super().__init__('unknown')
 
-        self.remove_vars = remove_vars or []
-        self.file_path = file_path  # path to the file with the metadata
-        self.metadata = pd.read_csv(self.file_path, sep=None, engine="python")
+        self.metadata = metadata
+        self.remove_features = remove_features
+        self.keep_features = keep_features
 
-        rows = [
-            row
-            for row in self.metadata.itertuples()
-            if row.varName not in self.remove_vars
-        ]
+        if self.keep_features is not None:
+            rows = [
+                row
+                for row in self.metadata.vars.values()
+                if row['varName'] in self.keep_features
+            ]
+        elif self.remove_features is not None:
+            rows = [
+                row
+                for row in self.metadata.vars.values()
+                if row['varName'] not in self.remove_features
+            ]
+        else:
+            # all features as specified in metadata are used
+            rows = list(self.metadata.vars.values())
 
-        self.pipeline.addPipe("union", Union(len(rows)))
+        self._last_pipe_name = "pass_data"
 
-        for idx, row in enumerate(rows):
-            self.pipeline.addPipe(
-                "filter_" + row.varName, FilterFeatures([row.varName])
+        def concat_pipe(name, pipe):
+            self.sub_pipeline.addPipe(
+                name, pipe, [(self._last_pipe_name, "df", "df")]
             )
-            self.pipeline._connect(  # pylint: disable=W0212
-                "", "df", "filter_" + row.varName, "df"
-            )
+            self._last_pipe_name = name
 
-            if row.varType == "num" and row.impMethod in ["mean", "median"]:
-                self.pipeline.addPipe(
-                    "impute_" + row.varName, ImputeWithDummy(strategy=row.impMethod)
-                )
-                self.pipeline._connect(  # pylint: disable=W0212
-                    "filter_" + row.varName, "df", "impute_" + row.varName, "df"
-                )
-                self.pipeline._connect(  # pylint: disable=W0212
-                    "impute_" + row.varName, "df", "union", "df%s" % idx
+        for row in rows:
+            if row['impMethod'] == "none" and row['impValue'] != float("nan"):
+                concat_pipe(
+                    "impute_" + row['varName'],
+                    ImputeWithDummy(strategy="value", value=row['impValue'], features=[row['varName']]),
                 )
 
-            if row.varType == "cat" and row.impMethod == "mode":
-                self.pipeline.addPipe("impute_" + row.varName, CategoricalImpute())
-                self.pipeline.addPipe(
-                    "labelbinarizer_" + row.varName, LabelBinarizerPipe()
+            elif row['varType'] in ("numi", "numc"):
+                concat_pipe(
+                    "impute_" + row['varName'],
+                    ImputeWithDummy(strategy=row['impMethod'], features=[row['varName']]),
                 )
-                self.pipeline._connect(  # pylint: disable=W0212
-                    "filter_" + row.varName, "df", "impute_" + row.varName, "df"
+            elif row['varType'] == "ind":
+                # all boolean field already have -1 for missing values by read_csv
+                pass
+            if row['varType'] in ("cat" , "cd", "oms") and row['impMethod'] == "mode":
+                concat_pipe(
+                    "impute_" + row['varName'],
+                    CategoricalImpute(features=[row['varName']]),
                 )
-                self.pipeline._connect(  # pylint: disable=W0212
-                    "impute_" + row.varName, "df", "labelbinarizer_" + row.varName, "df"
-                )
-                self.pipeline._connect(  # pylint: disable=W0212
-                    "labelbinarizer_" + row.varName, "df", "union", "df%s" % idx
+                concat_pipe(
+                    "labelencoder_" + row['varName'],
+                    LabelEncoderPipe(features=[row['varName']]),
                 )
 
-            elif row.varType == "cat":
-                self.pipeline.addPipe(
-                    "labelbinarizer_" + row.varName, LabelBinarizerPipe()
+            elif row['varType'] in ("cat" , "cd", "oms") :
+                concat_pipe(
+                    "labelencoder_" + row['varName'],
+                    LabelEncoderPipe(features=[row['varName']]),
                 )
-                self.pipeline._connect(  # pylint: disable=W0212
-                    "filter_" + row.varName, "df", "labelbinarizer_" + row.varName, "df"
-                )
-                self.pipeline._connect(  # pylint: disable=W0212
-                    "labelbinarizer_" + row.varName, "df", "union", "df%s" % idx
-                )
+
+        self.setOutputPipeName(self._last_pipe_name)

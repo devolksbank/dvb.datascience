@@ -25,7 +25,7 @@ class AndrewsPlot(PipeBase):
 
         self.column = column
 
-    def transform(self, data: Data, params: Params) -> Data:
+    def transform_pandas(self, data: Data, params: Params) -> Data:
         df = data["df"]
 
         display(
@@ -37,3 +37,6 @@ class AndrewsPlot(PipeBase):
         plt.title("Andrews curves")
 
         return {"figs": self.figs}
+
+    def transform_dask(self, data: Data, params: Params) -> Data:
+        raise NotImplementedError
