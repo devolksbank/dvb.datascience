@@ -134,7 +134,7 @@ For a more extensive overview of all the features, see the docs directory.
 ## Backends
 
 Both Pandas and Dask can be used for the actual processing. At default Pandas will be used. When needed, Dask can be
-used to handle datasets which do not fit in memory or when distributed computing is needed. Dask does is not a drop-in
+used to handle datasets which do not fit in memory or when distributed computing is needed. Dask is not a drop-in
 replacement of Pandas; some methods are not provided by Dask. Like computing the median can not be distributed efficiently
 and therefor is [not implemented in Dask](http://docs.dask.org/en/latest/dataframe.html).
 
